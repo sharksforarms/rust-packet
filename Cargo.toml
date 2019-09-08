@@ -1,0 +1,11 @@
+[package]
+name = "rust-packet"
+version = "0.1.0"
+authors = ["sharksforarms"]
+edition = "2018"
+
+[dependencies]
+nom = "5"
+
+[dev-dependencies]
+rstest = "0.3"
