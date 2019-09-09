@@ -54,6 +54,7 @@ impl Layer for Ether {
 mod tests {
     use super::*;
     use hex;
+    use quickcheck;
     use rstest::rstest_parametrize;
 
     fn ether_from_bytes(input: &[u8]) -> Result<(Ether, &[u8]), LayerError> {
@@ -61,6 +62,7 @@ mod tests {
     }
 
     const EMPTY: &[u8] = &[];
+
     #[rstest_parametrize(expected, input,
     // Normal
     case((Ether { dst: [236, 8, 107, 80, 125, 88], src: [76, 204, 106, 214, 31, 118], ether_type: 0x0800 }, EMPTY), &hex::decode("ec086b507d584ccc6ad61f760800").unwrap()),
@@ -83,4 +85,11 @@ mod tests {
         assert_eq!(expected, ether);
     }
 
+    #[test]
+    fn test_quickcheck_test_ether_from_bytes() {
+        fn prop(input: Vec<u8>) {
+            let _ = ether_from_bytes(&input);
+        }
+        quickcheck::quickcheck(prop as fn(Vec<u8>));
+    }
 }

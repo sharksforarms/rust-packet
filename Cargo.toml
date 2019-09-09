@@ -11,3 +11,4 @@ hex = "0.3"
 
 [dev-dependencies]
 rstest = "0.3"
+quickcheck = "0.9"
