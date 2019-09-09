@@ -5,7 +5,7 @@ mod ether;
 
 trait Layer {
     type LayerType: Sized;
-    fn from_bytes(bytes: &[u8]) -> Result<Self::LayerType, LayerError>;
+    fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError>;
 }
 
 #[derive(Debug, PartialEq)]
