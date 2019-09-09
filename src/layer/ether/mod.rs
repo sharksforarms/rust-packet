@@ -1,45 +1,75 @@
 use crate::layer::{Layer, LayerError};
 
 pub mod macaddress;
-use macaddress::MacAddress;
+use byteorder::{ByteOrder, NetworkEndian};
+use nom::bytes::streaming::take;
+use nom::combinator::map_res;
+use nom::sequence::tuple;
+use nom::IResult;
+use std::convert::TryInto;
 
-#[derive(Debug)]
-enum EtherType {
-    Ipv4 = 0x0800,
-    Ipv6 = 0x86dd,
-    Arp = 0x0806,
-    WakeOnLan = 0x0842,
-    VlanTaggedFrame = 0x8100,
-    ProviderBridging = 0x88A8,
-    VlanDoubleTaggedFrame = 0x9100,
-}
+const ETH_TYPE_LEN: usize = 2;
+const ETH_MACADDR_LEN: usize = 6;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Ether {
-    src: MacAddress,
-    dst: MacAddress,
-    ether_type: EtherType,
+    dst: [u8; ETH_MACADDR_LEN],
+    src: [u8; ETH_MACADDR_LEN],
+    ether_type: u16,
 }
 
 impl Layer for Ether {
     type LayerType = Ether;
 
     fn from_bytes(bytes: &[u8]) -> Result<Self::LayerType, LayerError> {
-        unimplemented!()
+        fn take_mac_address(input: &[u8]) -> IResult<&[u8], &[u8]> {
+            take(ETH_MACADDR_LEN)(input)
+        }
+        fn take_ether_type(input: &[u8]) -> IResult<&[u8], u16> {
+            map_res(take(ETH_TYPE_LEN), |v| -> Result<u16, LayerError> {
+                Ok(NetworkEndian::read_u16(v))
+            })(input)
+        }
+
+        let parser = tuple((take_mac_address, take_mac_address, take_ether_type));
+        let (_, (dst, src, ether_type)) = parser(bytes)?;
+
+        Ok(Ether {
+            dst: dst.try_into().map_err(|e| {
+                LayerError::Unexpected(format!("ether dst conversion error: {:?}", e))
+            })?,
+            src: src.try_into().map_err(|e| {
+                LayerError::Unexpected(format!("ether src conversion error: {:?}", e))
+            })?,
+            ether_type,
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hex;
     use rstest::rstest_parametrize;
 
+    fn parse_ether(input: &[u8]) -> Result<Ether, LayerError> {
+        Ether::from_bytes(input)
+    }
+
     #[rstest_parametrize(expected, input,
-//    case(Ether{a: 1}, b"aabb"),
+    case(Ether { dst: [236, 8, 107, 80, 125, 88], src: [76, 204, 106, 214, 31, 118], ether_type: 0x0800 }, &hex::decode("ec086b507d584ccc6ad61f760800").unwrap()),
     )]
     fn test_parse_ether(expected: Ether, input: &[u8]) {
-        std::dbg!(expected);
-        std::dbg!(input);
+        let ether = parse_ether(input).unwrap();
+        assert_eq!(expected, ether);
+    }
+
+    #[rstest_parametrize(expected, input,
+    case(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string()), b"aaaaaa"),
+    )]
+    fn test_parse_ether_error(expected: LayerError, input: &[u8]) {
+        let ether = parse_ether(input).expect_err("Expect error");
+        assert_eq!(expected, ether);
     }
 
 }
