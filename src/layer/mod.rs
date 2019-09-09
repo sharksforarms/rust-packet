@@ -1,9 +1,9 @@
 use std::error;
 use std::fmt;
 
-mod ether;
+pub mod ether;
 
-trait Layer {
+pub trait Layer {
     type LayerType: Sized;
     fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError>;
 }

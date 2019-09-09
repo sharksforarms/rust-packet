@@ -12,7 +12,7 @@ const ETH_TYPE_LEN: usize = 2;
 const ETH_MACADDR_LEN: usize = 6;
 
 #[derive(Debug, PartialEq)]
-struct Ether {
+pub struct Ether {
     dst: [u8; ETH_MACADDR_LEN],
     src: [u8; ETH_MACADDR_LEN],
     ether_type: u16,

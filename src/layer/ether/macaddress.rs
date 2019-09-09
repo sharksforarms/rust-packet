@@ -11,7 +11,7 @@ use std::str::FromStr;
 pub struct MacAddress(pub [u8; 6]);
 
 impl MacAddress {
-    pub fn from_bytes(input: &[u8]) -> Result<Self, LayerError> {
+    pub fn from_bytes(_input: &[u8]) -> Result<Self, LayerError> {
         unimplemented!()
     }
 }
