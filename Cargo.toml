@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 nom = "5"
 byteorder = "1"
-hex="*"
+hex = "0.3"
 
 [dev-dependencies]
 rstest = "0.3"

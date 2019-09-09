@@ -52,23 +52,23 @@ mod tests {
     use hex;
     use rstest::rstest_parametrize;
 
-    fn parse_ether(input: &[u8]) -> Result<Ether, LayerError> {
+    fn ether_from_bytes(input: &[u8]) -> Result<Ether, LayerError> {
         Ether::from_bytes(input)
     }
 
     #[rstest_parametrize(expected, input,
     case(Ether { dst: [236, 8, 107, 80, 125, 88], src: [76, 204, 106, 214, 31, 118], ether_type: 0x0800 }, &hex::decode("ec086b507d584ccc6ad61f760800").unwrap()),
     )]
-    fn test_parse_ether(expected: Ether, input: &[u8]) {
-        let ether = parse_ether(input).unwrap();
+    fn test_ether_from_bytes(expected: Ether, input: &[u8]) {
+        let ether = ether_from_bytes(input).unwrap();
         assert_eq!(expected, ether);
     }
 
     #[rstest_parametrize(expected, input,
     case(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string()), b"aaaaaa"),
     )]
-    fn test_parse_ether_error(expected: LayerError, input: &[u8]) {
-        let ether = parse_ether(input).expect_err("Expect error");
+    fn test_ether_from_bytes_error(expected: LayerError, input: &[u8]) {
+        let ether = ether_from_bytes(input).expect_err("Expect error");
         assert_eq!(expected, ether);
     }
 
