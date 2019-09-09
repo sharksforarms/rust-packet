@@ -65,7 +65,11 @@ mod tests {
     }
 
     #[rstest_parametrize(expected, input,
-    case(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string()), b"aaaaaa"),
+    case(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string()), b""),
+    case(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string()), b"aa"),
+    case(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string()), b"aaaaaaa"),
+    case(LayerError::Parse("incomplete data, parser step failed. Step needs 2 bytes".to_string()), b"aaaaaaaaaaaa"),
+    case(LayerError::Parse("incomplete data, parser step failed. Step needs 2 bytes".to_string()), b"aaaaaaaaaaaaa"),
     )]
     fn test_ether_from_bytes_error(expected: LayerError, input: &[u8]) {
         let ether = ether_from_bytes(input).expect_err("Expect error");
