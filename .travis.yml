@@ -23,11 +23,16 @@ matrix:
         - cargo install-update -a
         - mkdir -p target/kcov-master
       script:
-        cargo coveralls --verbose --all-features
+        - cargo coveralls --verbose
 
 addons:
   apt:
     packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
+      - libbfd-dev
       - cmake
     sources:
       - kalakris-cmake
