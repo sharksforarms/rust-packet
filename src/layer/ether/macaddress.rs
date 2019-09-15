@@ -11,8 +11,8 @@ use std::str::FromStr;
 pub struct MacAddress(pub [u8; 6]);
 
 impl MacAddress {
-    pub fn from_bytes(_input: &[u8]) -> Result<Self, LayerError> {
-        unimplemented!()
+    pub fn from_bytes(input: [u8; 6]) -> Self {
+        MacAddress(input)
     }
 }
 
@@ -55,7 +55,12 @@ mod tests {
     use super::*;
     use rstest::rstest_parametrize;
 
-    fn parse_mac_from_str(input: &str) -> Result<MacAddress, LayerError> {
+    #[test]
+    fn mac_from_bytes() {
+        let _mac = MacAddress::from_bytes([0, 0, 0, 0, 0, 0]);
+    }
+
+    fn mac_from_str(input: &str) -> Result<MacAddress, LayerError> {
         input.parse()
     }
 
@@ -64,8 +69,8 @@ mod tests {
     case(MacAddress([170, 255, 255, 255, 255, 187]), "aa:ff:ff:ff:ff:bb"),
     case(MacAddress([170, 255, 255, 255, 255, 187]), "AA:FF:FF:FF:FF:BB"),
     )]
-    fn test_parse_mac_str(expected: MacAddress, input: &str) {
-        let mac = parse_mac_from_str(input).unwrap();
+    fn test_mac_from_str(expected: MacAddress, input: &str) {
+        let mac = mac_from_str(input).unwrap();
         assert_eq!(expected, mac);
     }
 
@@ -75,8 +80,8 @@ mod tests {
     case(LayerError::Parse("parsing failure, invalid format".to_string()),"00:00:00:00:00"),
     case(LayerError::Parse("parsing failure, invalid format".to_string()),"00:00:00:00:00:00:00"),
     )]
-    fn test_parse_mac_str_error(expected: LayerError, input: &str) {
-        let layer_error = parse_mac_from_str(input).expect_err("Expect error");
+    fn test_mac_from_str_error(expected: LayerError, input: &str) {
+        let layer_error = mac_from_str(input).expect_err("Expect error");
         assert_eq!(expected, layer_error);
     }
 }

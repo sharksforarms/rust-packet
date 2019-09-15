@@ -12,7 +12,8 @@ hex = "0.3"
 [dev-dependencies]
 rstest = "0.3"
 quickcheck = "0.9"
-criterion = "0.2"
+criterion = "0.3"
+alloc_counter = "0.0.2"
 
 [[bench]]
 name = "bench_ether"

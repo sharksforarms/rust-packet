@@ -1,12 +1,12 @@
 use crate::layer::{Layer, LayerError};
-
-pub mod macaddress;
 use byteorder::{ByteOrder, NetworkEndian};
 use nom::bytes::streaming::take;
 use nom::combinator::map_res;
 use nom::sequence::tuple;
 use nom::IResult;
 use std::convert::TryInto;
+
+pub mod macaddress;
 
 const ETH_TYPE_LEN: usize = 2;
 const ETH_MACADDR_LEN: usize = 6;
