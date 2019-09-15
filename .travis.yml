@@ -9,6 +9,10 @@ rust:
   - beta
   - stable
 
+before_script:
+  - eval git pull --rebase https://github.com/sharksforarms/rust-packet master
+  - eval git log --pretty=oneline HEAD~5..HEAD
+
 matrix:
   include:
     - rust: nightly
@@ -17,6 +21,7 @@ matrix:
         - cargo install cargo-update   || echo "cargo-update already installed"
         - cargo install cargo-travis   || echo "cargo-travis already installed"
         - cargo install-update -a
+        - mkdir -p target/kcov-master
       script:
         cargo coveralls --verbose --all-features
 
@@ -24,6 +29,8 @@ addons:
   apt:
     packages:
       - cmake
+    sources:
+      - kalakris-cmake
 
 cache: cargo
 
