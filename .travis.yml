@@ -1,0 +1,41 @@
+language: rust
+# sudo is required to enable kcov
+sudo: required
+dist: trusty
+cache: cargo
+
+rust:
+  - nightly
+  - beta
+  - stable
+
+matrix:
+  include:
+    - rust: beta
+    - rust: nightly
+      before_script:
+        - export PATH=$HOME/.cargo/bin:$PATH
+        - cargo install cargo-update   || echo "cargo-update already installed"
+        - cargo install cargo-travis   || echo "cargo-travis already installed"
+        - cargo install-update -a
+      script:
+        cargo coveralls --verbose --all-features
+  allow_failures:
+    - rust: stable
+      before_script:
+        - export PATH=$HOME/.cargo/bin:$PATH
+        - rustup component add rustfmt-preview
+      script:
+        - eval cargo fmt -- --write-mode=diff
+
+addons:
+  apt:
+    packages:
+      - cmake
+
+cache: cargo
+
+script:
+  - eval cargo build --all --verbose
+  - eval cargo test --all --verbose
+  - eval cargo bench --all --verbose
