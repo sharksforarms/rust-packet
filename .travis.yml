@@ -11,7 +11,6 @@ rust:
 
 matrix:
   include:
-    - rust: beta
     - rust: nightly
       before_script:
         - export PATH=$HOME/.cargo/bin:$PATH
@@ -20,13 +19,6 @@ matrix:
         - cargo install-update -a
       script:
         cargo coveralls --verbose --all-features
-  allow_failures:
-    - rust: stable
-      before_script:
-        - export PATH=$HOME/.cargo/bin:$PATH
-        - rustup component add rustfmt-preview
-      script:
-        - eval cargo fmt -- --write-mode=diff
 
 addons:
   apt:
