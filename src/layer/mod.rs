@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 
 pub mod ether;
+pub mod ip;
 
 pub trait Layer {
     type LayerType: Sized;
