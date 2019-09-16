@@ -15,10 +15,10 @@ git checkout ${TRAVIS_COMMIT} && \
 cargo bench --bench benchmark -- --noplot --save-baseline after && \
 
 # Install https://github.com/BurntSushi/critcmp
-cargo install critcmp --force && \
+cargo install critcmp --force
 
 # Compare the two generated benches
-CRITCMP_OUT="$(critcmp before after)";
+CRITCMP_OUT=`critcmp before after`;
 printf -v CRITCMP_OUT_ESCP "%q" "$CRITCMP_OUT"
 
 read -d '' DATA_JSON << EOF
