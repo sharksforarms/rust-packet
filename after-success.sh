@@ -30,6 +30,9 @@ $CRITCMP_OUT
 "
 }
 EOF
+
+echo "$DATA_JSON" > data.json
+
 # Post github comment with results of benchmark
 if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
     COMMENTS_API=""https://api.github.com/repos/${TRAVIS_REPO_SLUG}/issues/${TRAVIS_PULL_REQUEST}/comments"
@@ -51,10 +54,10 @@ if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
         # Update the comment
         curl -vvv -H "Authorization: token ${GITHUB_TOKEN}" -X PATCH \
         "$COMMENT_URL" \
-        -d "$DATA_JSON"
+        -d @data.json
     else
         # Create the comment
         curl -vvv -H "Authorization: token ${GITHUB_TOKEN}" -X POST \
         "$COMMENTS_API" \
-        -d "$DATA_JSON"
+        -d @data.json
 fi
