@@ -8,11 +8,11 @@ cd  "${TRAVIS_REPO_SLUG}-bench" && \
 
 # Bench master
 git checkout master && \
-cargo bench -- --noplot --save-baseline before && \
+cargo bench --bench benchmark -- --noplot --save-baseline before && \
 
 # Bench current branch
 git checkout ${TRAVIS_COMMIT} && \
-cargo bench -- --noplot --save-baseline after && \
+cargo bench --bench benchmark -- --noplot --save-baseline after && \
 
 # Install https://github.com/BurntSushi/critcmp
 cargo install critcmp --force && \
