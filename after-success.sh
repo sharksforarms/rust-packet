@@ -19,14 +19,15 @@ cargo install critcmp --force && \
 
 # Compare the two generated benches
 CRITCMP_OUT="$(critcmp before after)";
+printf -v CRITCMP_OUT_ESCP "%q" "$CRITCMP_OUT"
 
 read -d '' DATA_JSON << EOF
 {
     "body": "Benchmarks: $(date -u)
 
-```text
-$CRITCMP_OUT
-```
+\`\`\`text
+$CRITCMP_OUT_ESCP
+\`\`\`
 "
 }
 EOF
