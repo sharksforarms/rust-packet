@@ -59,7 +59,7 @@ impl FromStr for MacAddress {
             c.is_digit(16)
         }
 
-        pub(crate) fn hex_2(input: &str) -> IResult<&str, u8> {
+        fn hex_2(input: &str) -> IResult<&str, u8> {
             map_res(take_while_m_n(2, 2, is_hex_digit), from_hex)(input)
         }
 
