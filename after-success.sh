@@ -32,6 +32,7 @@ $CRITCMP_OUT
 EOF
 
 echo "$DATA_JSON" > data.json
+cat data.json
 
 # Post github comment with results of benchmark
 if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
