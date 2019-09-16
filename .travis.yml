@@ -4,6 +4,9 @@ sudo: required
 dist: trusty
 cache: cargo
 
+git:
+  depth: 10
+
 rust:
   - nightly
   - beta
@@ -33,6 +36,7 @@ addons:
       - libdw-dev
       - binutils-dev
       - cmake
+      - jq
     sources:
       - kalakris-cmake
 
@@ -41,6 +45,4 @@ cache: cargo
 script:
   - eval cargo build --all --verbose
   - eval cargo test --all --verbose
-
-after_success:
-  - ./after-success.sh
+  - eval ./after-success.sh
