@@ -18,17 +18,10 @@ cargo bench --bench benchmark -- --noplot --save-baseline after && \
 cargo install critcmp --force
 
 # Compare the two generated benches
-CRITCMP_OUT=`critcmp before after`;
-printf -v CRITCMP_OUT_ESCP "%q" "$CRITCMP_OUT"
-
+CRITCMP_OUT=`critcmp before after | sed ':a;N;$!ba;s/\n/\\n/g'`;
 read -d '' DATA_JSON << EOF
 {
-    "body": "Benchmarks: $(date -u)
-
-\`\`\`text
-$CRITCMP_OUT_ESCP
-\`\`\`
-"
+    "body": "Benchmarks: $(date -u)\r\n\r\n\`\`\`text\r\n$CRITCMP_OUT\r\n\`\`\`"
 }
 EOF
 
@@ -36,7 +29,7 @@ echo "$DATA_JSON" > data.json
 cat data.json
 
 # Post github comment with results of benchmark
-if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
+if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ] && [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then
     COMMENTS_API=""https://api.github.com/repos/${TRAVIS_REPO_SLUG}/issues/${TRAVIS_PULL_REQUEST}/comments"
 
     # Get existing comment if exists
