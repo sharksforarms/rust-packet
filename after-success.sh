@@ -22,7 +22,8 @@ CRITCMP_OUT="$(critcmp before after)";
 
 read -d '' DATA_JSON << EOF
 {
-    "body": "Benchmarks:
+    "body": "Benchmarks: $(date -u)
+
 ```text
 $CRITCMP_OUT
 ```
