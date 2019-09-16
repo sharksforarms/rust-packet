@@ -41,6 +41,4 @@ cache: cargo
 script:
   - eval cargo build --all --verbose
   - eval cargo test --all --verbose
-
-after_success:
-  - ./after-success.sh
+  - eval ./after-success.sh
