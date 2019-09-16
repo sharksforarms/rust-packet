@@ -4,6 +4,9 @@ sudo: required
 dist: trusty
 cache: cargo
 
+git:
+  depth: 10
+
 rust:
   - nightly
   - beta
