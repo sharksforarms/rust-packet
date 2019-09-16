@@ -18,4 +18,19 @@ cargo bench --bench benchmark -- --noplot --save-baseline after && \
 cargo install critcmp --force && \
 
 # Compare the two generated benches
-critcmp before after;
+CRITCMP_OUT="$(critcmp before after)";
+
+# Post github comment with results of benchmark
+if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
+    curl -H "Authorization: token ${GITHUB_TOKEN}" -X POST \
+    "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/issues/${TRAVIS_PULL_REQUEST}/comments" \
+    -d @- << EOF
+{
+    "body": "Benchmarks:
+```text
+$CRITCMP_OUT
+```",
+}
+EOF
+
+fi
