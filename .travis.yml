@@ -36,6 +36,7 @@ addons:
       - libdw-dev
       - binutils-dev
       - cmake
+      - jq
     sources:
       - kalakris-cmake
 

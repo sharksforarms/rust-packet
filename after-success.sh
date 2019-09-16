@@ -20,17 +20,40 @@ cargo install critcmp --force && \
 # Compare the two generated benches
 CRITCMP_OUT="$(critcmp before after)";
 
-# Post github comment with results of benchmark
-if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
-    curl -H "Authorization: token ${GITHUB_TOKEN}" -X POST \
-    "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/issues/${TRAVIS_PULL_REQUEST}/comments" \
-    -d @- << EOF
+read -d '' DATA_JSON << EOF
 {
     "body": "Benchmarks:
 ```text
 $CRITCMP_OUT
-```",
+```
+"
 }
 EOF
+# Post github comment with results of benchmark
+if [ "${TRAVIS_REPO_SLUG}" == "sharksforarms/rust-packet" ]; then
+    COMMENTS_API=""https://api.github.com/repos/${TRAVIS_REPO_SLUG}/issues/${TRAVIS_PULL_REQUEST}/comments"
 
+    # Get existing comment if exists
+    COMMENT_URL=$(curl $COMMENTS_API | jq "
+    .[] | \
+        if (.body | startswith(\"Benchmarks:\")) and (.user.login == \"sharksforarmss\") \
+        then \
+            .url \
+        else \
+            error(\"Error: Could not find comment\") \
+        end \
+        | . \
+        ")
+
+    if [ $? -eq 0 ]
+    then
+        # Update the comment
+        curl -vvv -H "Authorization: token ${GITHUB_TOKEN}" -X PATCH \
+        "$COMMENT_URL" \
+        -d "$DATA_JSON"
+    else
+        # Create the comment
+        curl -vvv -H "Authorization: token ${GITHUB_TOKEN}" -X POST \
+        "$COMMENTS_API" \
+        -d "$DATA_JSON"
 fi
