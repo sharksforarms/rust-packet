@@ -141,6 +141,7 @@ mod tests {
     const EMPTY: &[u8] = &[];
 
     #[rstest_parametrize(expected, input,
+    // Normal
     case(
         Ok((
             Ipv4 {
@@ -163,6 +164,30 @@ mod tests {
             EMPTY
         )),
         &hex::decode("450000502bc1400040068f37c0a8016bc01efd7d").unwrap()
+    ),
+    // IP + extra (FFFF)
+    case(
+        Ok((
+            Ipv4 {
+                version: 4,
+                ihl: 5,
+                ecn: 0,
+                dscp: 0,
+                length: 80,
+                identification: 0x2bc1,
+                flags: 2,
+                offset: 0,
+                ttl: 64,
+                protocol: 6,
+                checksum: 0x8f37,
+                src: Ipv4Addr::new(192,168,1,107),
+                dst: Ipv4Addr::new(192,30,253,125),
+                options: Vec::new(),
+                padding: Vec::new(),
+            },
+            [0xFF, 0xFF].as_ref(),
+        )),
+        &hex::decode("450000502bc1400040068f37c0a8016bc01efd7dFFFF").unwrap()
     ),
     )]
     fn test_ipv4_from_bytes(expected: Result<(Ipv4, &[u8]), LayerError>, input: &[u8]) {

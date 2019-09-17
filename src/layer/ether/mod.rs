@@ -69,7 +69,7 @@ mod tests {
     case(
         Ok((
             Ether { dst: MacAddress::from_bytes([236, 8, 107, 80, 125, 88]), src: MacAddress::from_bytes([76, 204, 106, 214, 31, 118]), ether_type: 0x0800 },
-            [255, 255].as_ref()
+            [0xFF, 0xFF].as_ref()
         )),
         &hex::decode("ec086b507d584ccc6ad61f760800FFFF").unwrap()
     ),
