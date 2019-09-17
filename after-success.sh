@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+!/usr/bin/env bash
 
 # Clone the repository
 REMOTE_URL="$(git config --get remote.origin.url)";
@@ -22,7 +22,7 @@ CRITCMP_OUT=`critcmp before after`;
 CRITCMP_OUT="'"${CRITCMP_OUT//$'\n'/'\n'}"'"
 read -d '' DATA_JSON << EOF
 {
-    "body": "Benchmarks: $(date -u)<br/><br/>\`\`\`text\r\n$CRITCMP_OUT\`\`\`"
+    "body": "Benchmarks: $(date -u)<br/><br/>$CRITCMP_OUT"
 }
 EOF
 
