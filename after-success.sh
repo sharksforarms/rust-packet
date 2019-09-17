@@ -22,7 +22,7 @@ CRITCMP_OUT=`critcmp before after`;
 CRITCMP_OUT="'"${CRITCMP_OUT//$'\n'/'\n'}"'"
 read -d '' DATA_JSON << EOF
 {
-    "body": "Benchmarks: $(date -u)<br/><br/>```text $CRITCMP_OUT```"
+    "body": "Benchmarks: $(date -u)<br/><br/>\`\`\`text\r\n$CRITCMP_OUT\`\`\`"
 }
 EOF
 
