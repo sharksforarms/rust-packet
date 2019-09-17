@@ -2,9 +2,7 @@ use crate::layer::{Layer, LayerError};
 use byteorder::{ByteOrder, NetworkEndian};
 use nom::bytes::streaming::take;
 use nom::combinator::map_res;
-use nom::sequence::tuple;
 use nom::IResult;
-use std::convert::TryInto;
 use std::net::Ipv4Addr;
 
 enum Ip {
