@@ -18,7 +18,7 @@ cargo bench --bench benchmark -- --noplot --save-baseline after && \
 cargo install critcmp --force
 
 # Compare the two generated benches
-CRITCMP_OUT=`critcmp before after | sed ':a;N;$!ba;s/\n/\\n/g'`;
+CRITCMP_OUT=`critcmp before after | sed -z 's#\n#<br/>#g'`;
 read -d '' DATA_JSON << EOF
 {
     "body": "Benchmarks: $(date -u)\r\n\r\n\`\`\`text\r\n$CRITCMP_OUT\r\n\`\`\`"
