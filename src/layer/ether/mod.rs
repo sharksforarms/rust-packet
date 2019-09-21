@@ -7,15 +7,15 @@ use nom::IResult;
 use std::convert::TryInto;
 
 pub mod macaddress;
-use macaddress::MacAddress;
+pub use macaddress::MacAddress;
 
 const ETH_TYPE_SIZE: usize = 2;
 
 #[derive(Debug, PartialEq)]
 pub struct Ether {
-    dst: MacAddress,
-    src: MacAddress,
-    ether_type: u16,
+    pub dst: MacAddress,
+    pub src: MacAddress,
+    pub ether_type: u16,
 }
 
 impl Layer for Ether {
