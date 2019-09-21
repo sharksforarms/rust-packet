@@ -20,7 +20,7 @@ use std::net::Ipv4Addr;
 ///    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///    |                    Options                    |    Padding    |
 ///    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///```
+/// ```
 #[derive(Debug, PartialEq)]
 pub struct Ipv4 {
     pub version: u8,         // Version
@@ -45,8 +45,6 @@ impl Layer for Ipv4 {
 
     /// Parsers an `Ipv4` struct from bytes returning the struct and un-consumed data
     fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
-        // Tuples of (shift, mask)
-
         fn parse_ip_header(
             input: &[u8],
         ) -> IResult<(&[u8], usize), (u8, u8, u8, u8, u16, u16, u8, u16, u8, u8, u16, u32, u32)>

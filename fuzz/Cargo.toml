@@ -22,5 +22,9 @@ name = "fuzz_ether_from_bytes"
 path = "fuzz_targets/fuzz_ether_from_bytes.rs"
 
 [[bin]]
-name = "fuzz_ip_from_bytes"
-path = "fuzz_targets/fuzz_ip_from_bytes.rs"
+name = "fuzz_ipv4_from_bytes"
+path = "fuzz_targets/fuzz_ipv4_from_bytes.rs"
+
+[[bin]]
+name = "fuzz_ipv6_from_bytes"
+path = "fuzz_targets/fuzz_ipv6_from_bytes.rs"

@@ -7,7 +7,7 @@ static A: AllocCounterSystem = AllocCounterSystem;
 mod tests {
 
     use alloc_counter::count_alloc;
-    use rust_packet::layer::{ether::Ether, ether::MacAddress, ip::Ipv4, Layer};
+    use rust_packet::layer::{ether::Ether, ether::MacAddress, ip::Ipv4, ip::Ipv6, Layer};
     use std::net::Ipv4Addr;
 
     #[test]
@@ -58,6 +58,37 @@ mod tests {
         assert_eq!(
             count_alloc(|| {
                 let ip = Ipv4::from_bytes(input);
+                assert_eq!(expected, ip);
+            })
+            .0,
+            (0, 0, 0)
+        );
+    }
+
+    #[test]
+    fn test_alloc_ipv6_from_bytes() {
+        let input = &hex::decode(
+            "60000000012867403ffe802000000001026097fffe0769ea3ffe050100001c010200f8fffe03d9c0FFFF",
+        )
+        .unwrap();
+        let expected = Ok((
+            Ipv6 {
+                version: 6,
+                ds: 0,
+                ecn: 0,
+                label: 0,
+                length: 296,
+                next_header: 103,
+                hop_limit: 64,
+                src: "3ffe:8020:0:1:260:97ff:fe07:69ea".parse().unwrap(),
+                dst: "3ffe:501:0:1c01:200:f8ff:fe03:d9c0".parse().unwrap(),
+            },
+            [0xFF, 0xFF].as_ref(),
+        ));
+
+        assert_eq!(
+            count_alloc(|| {
+                let ip = Ipv6::from_bytes(input);
                 assert_eq!(expected, ip);
             })
             .0,
