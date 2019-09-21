@@ -1,7 +1,5 @@
 use crate::layer::{Layer, LayerError};
-use byteorder::{ByteOrder, NetworkEndian};
-use nom::bytes::streaming::take;
-use nom::combinator::map_res;
+use nom::bits::streaming::take as take_bits;
 use nom::IResult;
 use std::net::Ipv4Addr;
 
@@ -36,7 +34,7 @@ pub struct Ipv4 {
     length: u16,         // Total Length
     identification: u16, // Identification
     flags: u8,           // Flags
-    offset: u8,          // Fragment Offset
+    offset: u16,         // Fragment Offset
     ttl: u8,             // Time To Live
     protocol: u8,        // Protocol
     checksum: u16,       // Header checksum
@@ -52,59 +50,66 @@ impl Layer for Ipv4 {
     /// Parsers an `Ipv4` struct from bytes returning the struct and un-consumed data
     fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
         // Tuples of (shift, mask)
-        // Word 1
-        const IPV4_VERSION_MASK: (usize, u32) = (28, 0b1111000000000000_0000000000000000);
-        const IPV4_IHL_MASK: (usize, u32) = (24, 0b0000111100000000_0000000000000000);
-        const IPV4_DSCP_MASK: (usize, u32) = (18, 0b0000000011111100_0000000000000000);
-        const IPV4_ECN_MASK: (usize, u32) = (16, 0b0000000000000011_0000000000000000);
-        const IPV4_LENGTH_MASK: (usize, u32) = (0, 0x00FF);
 
-        // Word 2
-        const IPV4_IDENTIFICATION_MASK: (usize, u32) = (16, 0xFFFF0000);
-        const IPV4_FLAGS_MASK: (usize, u32) = (13, 0b0000000000000000_1110000000000000);
-        const IPV4_OFFSET_MASK: (usize, u32) = (0, 0b0000000000000000_0001111111111111);
+        fn parse_ip_header(
+            input: &[u8],
+        ) -> IResult<(&[u8], usize), (u8, u8, u8, u8, u16, u16, u8, u16, u8, u8, u16, u32, u32)>
+        {
+            let (rest, version): (_, u8) = take_bits(4usize)((input, 0usize))?;
+            let (rest, ihl): (_, u8) = take_bits(4usize)(rest)?;
+            let (rest, dscp): (_, u8) = take_bits(6usize)(rest)?;
+            let (rest, ecn): (_, u8) = take_bits(2usize)(rest)?;
+            let (rest, length): (_, u16) = take_bits(16usize)(rest)?;
+            let (rest, identification): (_, u16) = take_bits(16usize)(rest)?;
+            let (rest, flags): (_, u8) = take_bits(3usize)(rest)?;
+            let (rest, offset): (_, u16) = take_bits(13usize)(rest)?;
+            let (rest, ttl): (_, u8) = take_bits(8usize)(rest)?;
+            let (rest, protocol): (_, u8) = take_bits(8usize)(rest)?;
+            let (rest, checksum): (_, u16) = take_bits(16usize)(rest)?;
+            let (rest, src): (_, u32) = take_bits(32usize)(rest)?;
+            let (rest, dst): (_, u32) = take_bits(32usize)(rest)?;
 
-        // Word 3
-        const IPV4_TTL_MASK: (usize, u32) = (24, 0xFF000000);
-        const IPV4_PROTOCOL_MASK: (usize, u32) = (16, 0x00FF0000);
-        const IPV4_CHECKSUM_MASK: (usize, u32) = (0, 0x0000FFFF);
-
-        // Word 4 and 5
-        const IPV4_SRC_MASK: (usize, u32) = (0, 0xFFFFFFFF);
-        const IPV4_DST_MASK: (usize, u32) = (0, 0xFFFFFFFF);
-
-        fn take_word(input: &[u8]) -> IResult<&[u8], u32> {
-            map_res(take(4u8), |v| -> Result<u32, LayerError> {
-                Ok(NetworkEndian::read_u32(v))
-            })(input)
+            Ok((
+                rest,
+                (
+                    version,
+                    ihl,
+                    dscp,
+                    ecn,
+                    length,
+                    identification,
+                    flags,
+                    offset,
+                    ttl,
+                    protocol,
+                    checksum,
+                    src,
+                    dst,
+                ),
+            ))
         }
 
-        let (extra, word1) = take_word(bytes)?;
-        let (extra, word2) = take_word(extra)?;
-        let (extra, word3) = take_word(extra)?;
-        let (extra, word4) = take_word(extra)?;
-        let (extra, word5) = take_word(extra)?;
+        let (
+            (rest, _),
+            (
+                version,
+                ihl,
+                dscp,
+                ecn,
+                length,
+                identification,
+                flags,
+                offset,
+                ttl,
+                protocol,
+                checksum,
+                src,
+                dst,
+            ),
+        ) = parse_ip_header(bytes)?;
 
-        macro_rules! get_field {
-            ($word:ident, $mask:ident, $as_type:ty) => {
-                (($word & $mask.1) >> $mask.0) as $as_type
-            };
-        }
-
-        let version = get_field!(word1, IPV4_VERSION_MASK, u8);
-        let ihl = get_field!(word1, IPV4_IHL_MASK, u8);
-        let dscp = get_field!(word1, IPV4_DSCP_MASK, u8);
-        let ecn = get_field!(word1, IPV4_ECN_MASK, u8);
-        let length = get_field!(word1, IPV4_LENGTH_MASK, u16);
-        let identification = get_field!(word2, IPV4_IDENTIFICATION_MASK, u16);
-        let flags = get_field!(word2, IPV4_FLAGS_MASK, u8);
-        let offset = get_field!(word2, IPV4_OFFSET_MASK, u8);
-        let ttl = get_field!(word3, IPV4_TTL_MASK, u8);
-        let protocol = get_field!(word3, IPV4_PROTOCOL_MASK, u8);
-        let checksum = get_field!(word3, IPV4_CHECKSUM_MASK, u16);
-        let src: Ipv4Addr = get_field!(word4, IPV4_SRC_MASK, u32).into();
-        let dst: Ipv4Addr = get_field!(word5, IPV4_DST_MASK, u32).into();
-
+        let src: Ipv4Addr = src.into();
+        let dst: Ipv4Addr = dst.into();
         let options = Vec::new(); // TODO
         let padding = Vec::new(); // TODO
 
@@ -126,7 +131,7 @@ impl Layer for Ipv4 {
                 options,
                 padding,
             },
-            extra,
+            rest,
         ))
     }
 }
@@ -165,7 +170,7 @@ mod tests {
         )),
         &hex::decode("450000502bc1400040068f37c0a8016bc01efd7d").unwrap()
     ),
-    // IP + extra (FFFF)
+    // IP + rest (FFFF)
     case(
         Ok((
             Ipv4 {

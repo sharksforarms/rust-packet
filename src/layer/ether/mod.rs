@@ -34,7 +34,7 @@ impl Layer for Ether {
         }
 
         let parser = tuple((take_mac_address, take_mac_address, take_ether_type));
-        let (extra, (dst, src, ether_type)) = parser(bytes)?;
+        let (rest, (dst, src, ether_type)) = parser(bytes)?;
 
         Ok((
             Ether {
@@ -42,7 +42,7 @@ impl Layer for Ether {
                 src: src.try_into()?,
                 ether_type,
             },
-            extra,
+            rest,
         ))
     }
 }
@@ -65,7 +65,7 @@ mod tests {
         )),
         &hex::decode("ec086b507d584ccc6ad61f760800").unwrap()
     ),
-    // Ether + extra (FFFF)
+    // Ether + rest (FFFF)
     case(
         Ok((
             Ether { dst: MacAddress::from_bytes([236, 8, 107, 80, 125, 88]), src: MacAddress::from_bytes([76, 204, 106, 214, 31, 118]), ether_type: 0x0800 },
@@ -73,10 +73,10 @@ mod tests {
         )),
         &hex::decode("ec086b507d584ccc6ad61f760800FFFF").unwrap()
     ),
-    case(Err(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string())), b""),
-    case(Err(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string())), b"aa"),
-    case(Err(LayerError::Parse("incomplete data, parser step failed. Step needs 6 bytes".to_string())), b"aaaaaaa"),
-    case(Err(LayerError::Parse("incomplete data, parser step failed. Step needs 2 bytes".to_string())), b"aaaaaaaaaaaa"),
+    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b""),
+    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aa"),
+    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaa"),
+    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaaaaaaa"),
     )]
     fn test_ether_from_bytes(expected: Result<(Ether, &[u8]), LayerError>, input: &[u8]) {
         let ether = Ether::from_bytes(input);

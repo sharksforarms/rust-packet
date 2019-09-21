@@ -32,40 +32,26 @@ impl error::Error for LayerError {
     }
 }
 
-impl From<::nom::Err<(&[u8], ::nom::error::ErrorKind)>> for LayerError {
-    fn from(err: ::nom::Err<(&[u8], ::nom::error::ErrorKind)>) -> Self {
-        let msg = match err {
-            ::nom::Err::Incomplete(needed) => match needed {
-                ::nom::Needed::Size(v) => format!(
-                    "incomplete data, parser step failed. Step needs {} bytes",
-                    v
-                ),
-                ::nom::Needed::Unknown => format!("incomplete data"),
-            },
-            ::nom::Err::Error(e) | ::nom::Err::Failure(e) => {
-                format!("parsing error has occurred: {}", e.1.description())
-            }
-        };
+macro_rules! nom_to_layererr {
+    ($typ:ty) => {
+        impl From<::nom::Err<($typ, ::nom::error::ErrorKind)>> for LayerError {
+            fn from(err: ::nom::Err<($typ, ::nom::error::ErrorKind)>) -> Self {
+                let msg = match err {
+                    ::nom::Err::Incomplete(needed) => match needed {
+                        ::nom::Needed::Size(_v) => format!("incomplete data, needs more"),
+                        ::nom::Needed::Unknown => format!("incomplete data"),
+                    },
+                    ::nom::Err::Error(e) | ::nom::Err::Failure(e) => {
+                        format!("parsing error has occurred: {}", e.1.description())
+                    }
+                };
 
-        LayerError::Parse(msg)
-    }
+                LayerError::Parse(msg)
+            }
+        }
+    };
 }
 
-impl From<::nom::Err<(&str, ::nom::error::ErrorKind)>> for LayerError {
-    fn from(err: ::nom::Err<(&str, ::nom::error::ErrorKind)>) -> Self {
-        let msg = match err {
-            ::nom::Err::Incomplete(needed) => match needed {
-                ::nom::Needed::Size(v) => format!(
-                    "incomplete data, parser step failed. Step needs {} characters",
-                    v
-                ),
-                ::nom::Needed::Unknown => format!("incomplete data"),
-            },
-            ::nom::Err::Error(e) | ::nom::Err::Failure(e) => {
-                format!("parsing error has occurred: {}", e.1.description())
-            }
-        };
-
-        LayerError::Parse(msg)
-    }
-}
+nom_to_layererr!(&str);
+nom_to_layererr!(&[u8]);
+nom_to_layererr!((&[u8], usize));
