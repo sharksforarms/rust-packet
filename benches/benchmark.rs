@@ -5,7 +5,7 @@ extern crate rust_packet;
 use criterion::black_box;
 use criterion::Criterion;
 
-use rust_packet::layer::{ether::Ether, ip::Ipv4, ip::Ipv6, Layer};
+use rust_packet::layer::{ether::Ether, ip::Ipv4, ip::Ipv6, tcp::Tcp, Layer};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("ether_from_bytes", |b| {
@@ -24,6 +24,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         )
         .unwrap();
         b.iter(|| Ipv6::from_bytes(black_box(input)))
+    });
+
+    c.bench_function("tcp_from_bytes", |b| {
+        let input = &hex::decode("0d2c005038affe14114c618c501825bca9580000FFFF").unwrap();
+        b.iter(|| Tcp::from_bytes(black_box(input)))
     });
 }
 

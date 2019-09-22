@@ -3,6 +3,7 @@ use std::fmt;
 
 pub mod ether;
 pub mod ip;
+pub mod tcp;
 
 pub trait Layer {
     type LayerType: Sized;

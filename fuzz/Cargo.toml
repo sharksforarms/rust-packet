@@ -28,3 +28,7 @@ path = "fuzz_targets/fuzz_ipv4_from_bytes.rs"
 [[bin]]
 name = "fuzz_ipv6_from_bytes"
 path = "fuzz_targets/fuzz_ipv6_from_bytes.rs"
+
+[[bin]]
+name = "fuzz_tcp_from_bytes"
+path = "fuzz_targets/fuzz_tcp_from_bytes.rs"
