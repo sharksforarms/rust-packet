@@ -1,5 +1,6 @@
 use crate::layer::{Layer, LayerError};
-use nom::bits::streaming::take as take_bits;
+use nom::bits::streaming::{tag, take as take_bits};
+use nom::combinator::verify;
 use nom::sequence::tuple;
 use nom::IResult;
 
@@ -37,19 +38,17 @@ pub struct Tcp {
     pub window: u16,
     pub checksum: u16,
     pub urgptr: u16,
-    pub options: u32,
-    pub padding: u8,
-    pub data: Vec<u8>,
+    pub options: Vec<TcpOption>,
 }
 
 #[derive(Debug, PartialEq)]
-struct SackPtr {
-    begin: u32,
-    end: u32,
+pub struct SackPtr {
+    pub begin: u32,
+    pub end: u32,
 }
 
 #[derive(Debug, PartialEq)]
-enum TcpOption {
+pub enum TcpOption {
     EOL,
     NOP,
     Mss(u16),
@@ -57,6 +56,70 @@ enum TcpOption {
     SackPerm,
     Sack(Vec<SackPtr>),
     Timestamp((u32, u32)),
+    Unknown(Vec<u8>),
+}
+
+fn parse_single_option(rest: (&[u8], usize)) -> IResult<(&[u8], usize), TcpOption> {
+    let (rest, kind): (_, u8) = take_bits(8usize)(rest)?;
+    match kind {
+        0x0 => Ok((rest, TcpOption::EOL)),
+        0x1 => Ok((rest, TcpOption::NOP)),
+        0x2 => {
+            let (rest, _size): (_, usize) = tag(4usize, 8usize)(rest)?;
+            let (rest, mss): (_, u16) = take_bits(16usize)(rest)?;
+
+            Ok((rest, TcpOption::Mss(mss)))
+        }
+        0x3 => {
+            let (rest, _size): (_, usize) = tag(3usize, 8usize)(rest)?;
+            let (rest, ws): (_, u8) = take_bits(8usize)(rest)?;
+
+            Ok((rest, TcpOption::Ws(ws)))
+        }
+        0x4 => {
+            let (rest, _size): (_, usize) = tag(2usize, 8usize)(rest)?;
+            Ok((rest, TcpOption::SackPerm))
+        }
+        0x5 => {
+            let (rest, size): (_, usize) = take_bits(8usize)(rest)?; // TODO enforce value on the size 10,18,26 or 34
+            let ptr_count: usize = (((size - 2) * 8) / 32) / 2; // TODO figure this out better
+
+            let mut rest = rest;
+            let mut sackptrs: Vec<SackPtr> = Vec::with_capacity(ptr_count);
+            for _ in 0..ptr_count {
+                let (r, begin): (_, u32) = take_bits(32usize)(rest)?;
+                let (r, end): (_, u32) = take_bits(32usize)(r)?;
+                let sackptr = SackPtr { begin, end };
+                sackptrs.push(sackptr);
+
+                rest = r;
+            }
+
+            Ok((rest, TcpOption::Sack(sackptrs)))
+        }
+        0x8 => {
+            let (rest, _size): (_, usize) = tag(10usize, 8usize)(rest)?;
+            let (rest, timestamp): (_, u32) = take_bits(32usize)(rest)?;
+            let (rest, prev_timestamp): (_, u32) = take_bits(32usize)(rest)?;
+
+            Ok((rest, TcpOption::Timestamp((timestamp, prev_timestamp))))
+        }
+        _ => {
+            // TODO maybe error out instead? are non-standard tcp options a thing?
+            let (rest, size): (_, usize) = take_bits(8usize)(rest)?;
+            let size: usize = size - 2; // 1 byte for kind and one byte for length inclusive
+
+            let mut rest = rest;
+            let mut data = Vec::with_capacity(size);
+            for _ in 1..size {
+                let (r, byte): (_, u8) = take_bits(8usize)(rest)?;
+                data.push(byte);
+                rest = r;
+            }
+
+            Ok((rest, TcpOption::Unknown(data)))
+        }
+    }
 }
 
 impl Layer for Tcp {
@@ -68,16 +131,16 @@ impl Layer for Tcp {
             input: &[u8],
         ) -> IResult<(&[u8], usize), (u16, u16, u32, u32, u8, u16, u16, u16, u16, u16)> {
             tuple((
-                take_bits(16usize), // sport
-                take_bits(16usize), // dport
-                take_bits(32usize), // seq
-                take_bits(32usize), // ack
-                take_bits(4usize),  // offset
-                take_bits(6usize),  // reserved
-                take_bits(6usize),  // flags
-                take_bits(16usize), // window
-                take_bits(16usize), // checksum
-                take_bits(16usize), // urgptr
+                take_bits(16usize),                                          // sport
+                take_bits(16usize),                                          // dport
+                take_bits(32usize),                                          // seq
+                take_bits(32usize),                                          // ack
+                verify(take_bits(4usize), |v: &u8| (*v >= 5) && (*v <= 15)), // offset
+                take_bits(6usize),                                           // reserved
+                take_bits(6usize),                                           // flags
+                take_bits(16usize),                                          // window
+                take_bits(16usize),                                          // checksum
+                take_bits(16usize),                                          // urgptr
             ))((input, 0usize))
         }
 
@@ -85,68 +148,17 @@ impl Layer for Tcp {
             rest: (&[u8], usize),
             offset: u8,
         ) -> IResult<(&[u8], usize), Vec<TcpOption>> {
-            fn parse_single_option(rest: (&[u8], usize)) -> IResult<(&[u8], usize), TcpOption> {
-                let (rest, kind): (_, u8) = take_bits(8usize)(rest)?;
-                match kind {
-                    0x0 => Ok((rest, TcpOption::EOL)),
-                    0x1 => Ok((rest, TcpOption::NOP)),
-                    0x2 => {
-                        let (rest, _length): (_, usize) = take_bits(8usize)(rest)?;
-                        //let size: usize = length - 2; // 1 byte for kind and one byte for length inclusive
-                        let (rest, mss): (_, u16) = take_bits(16usize)(rest)?;
-
-                        Ok((rest, TcpOption::Mss(mss)))
-                    }
-                    0x3 => {
-                        let (rest, _length): (_, usize) = take_bits(8usize)(rest)?;
-                        //let size: usize = length - 2; // 1 byte for kind and one byte for length inclusive
-                        let (rest, ws): (_, u8) = take_bits(8usize)(rest)?;
-
-                        Ok((rest, TcpOption::Ws(ws)))
-                    }
-                    0x4 => {
-                        let (rest, _length): (_, usize) = take_bits(8usize)(rest)?;
-                        Ok((rest, TcpOption::SackPerm))
-                    }
-                    0x5 => {
-                        let (rest, length): (_, usize) = take_bits(8usize)(rest)?;
-                        let count: usize = (((length - 2) * 8) / 32) / 2; // TODO figure this out better
-
-                        let mut rest = rest;
-                        let mut sackptrs: Vec<SackPtr> = Vec::with_capacity(count);
-                        for _ in 0..count {
-                            let (r, begin): (_, u32) = take_bits(32usize)(rest)?;
-                            let (r, end): (_, u32) = take_bits(32usize)(r)?;
-                            let sackptr = SackPtr { begin, end };
-                            sackptrs.push(sackptr);
-
-                            rest = r;
-                        }
-
-                        Ok((rest, TcpOption::Sack(sackptrs)))
-                    }
-                    0x8 => {
-                        let (rest, _length): (_, usize) = take_bits(8usize)(rest)?;
-                        // let size: usize = length - 2; // 1 byte for kind and one byte for length inclusive
-                        let (rest, timestamp): (_, u32) = take_bits(32usize)(rest)?;
-                        let (rest, prev_timestamp): (_, u32) = take_bits(32usize)(rest)?;
-
-                        Ok((rest, TcpOption::Timestamp((timestamp, prev_timestamp))))
-                    }
-                    _ => {
-                        println!("Unknown: {:x?}", kind);
-                        unimplemented!() // TODO
-                    }
-                }
-            }
-
-            let options_size: usize = ((offset as usize - 5) * 32) / 8;
-            let mut rest = (rest.0[..options_size].as_ref(), rest.1);
+            let options_count: usize = offset as usize - 5;
+            let options_size: usize = (options_count * 32) / 8;
+            let mut option_data = (rest.0[..options_size].as_ref(), rest.1);
+            let rest = (rest.0[options_size..].as_ref(), 0usize);
 
             let mut options: Vec<TcpOption> = Vec::with_capacity(offset as usize - 5);
-            while let Ok((rest2, option)) = parse_single_option(rest) {
+            // TODO: Might be padded with 0s
+            while option_data.0.len() > 0 {
+                let (option_data2, option) = parse_single_option(option_data)?;
                 options.push(option);
-                rest = rest2;
+                option_data = option_data2;
             }
 
             return Ok((rest, options));
@@ -155,13 +167,7 @@ impl Layer for Tcp {
         let (rest, (sport, dport, seq, ack, offset, reserved, flags, window, checksum, urgptr)) =
             parse_tcp_header(bytes)?;
 
-        dbg!(offset);
         let ((rest, _), options) = parse_tcp_options(rest, offset)?;
-        dbg!(options);
-
-        let options: u32 = 0;
-        let padding: u8 = 0;
-        let data: Vec<u8> = Vec::new();
 
         Ok((
             Tcp {
@@ -176,8 +182,6 @@ impl Layer for Tcp {
                 checksum,
                 urgptr,
                 options,
-                padding,
-                data,
             },
             rest,
         ))
@@ -208,9 +212,7 @@ mod tests {
                 window: 9660,
                 checksum: 0xa958,
                 urgptr: 0,
-                options: 0,
-                padding: 0,
-                data: Vec::new(),
+                options: Vec::new(),
             },
             EMPTY
         )),
@@ -230,9 +232,7 @@ mod tests {
                 window: 9660,
                 checksum: 0xa958,
                 urgptr: 0,
-                options: 0,
-                padding: 0,
-                data: Vec::new(),
+                options: Vec::new(),
             },
             [0xFF, 0xFF].as_ref(),
         )),
@@ -242,25 +242,23 @@ mod tests {
     case(
         Ok((
             Tcp {
-                sport: 3372,
+                sport: 49683,
                 dport: 80,
-                seq: 951057940,
-                ack: 290218380,
-                offset: 5,
+                seq: 2263792740,
+                ack: 3839277976,
+                offset: 11,
                 reserved: 0,
-                flags: 0x018,
-                window: 9660,
-                checksum: 0xa958,
+                flags: 0x010,
+                window: 196,
+                checksum: 0x9afc,
                 urgptr: 0,
-                options: 0,
-                padding: 0,
-                data: Vec::new(),
+                options: vec![TcpOption::NOP, TcpOption::NOP, TcpOption::Timestamp((3548665977, 1081292766)), TcpOption::NOP, TcpOption::NOP, TcpOption::Sack(vec![SackPtr { begin: 3839279344, end: 3839282080 }])],
             },
             [0xFF, 0xFF].as_ref(),
         )),
-        //&hex::decode("c213005086eebbdf00000000a00216d0fd060000020405b40402080ad38457420000000001030307").unwrap()
-        &hex::decode("c213005086eebc64e4d6bb98b01000c49afc00000101080ad3845879407337de0101050ae4d6c0f0e4d6cba0").unwrap()
-   ),
+        &hex::decode("c213005086eebc64e4d6bb98b01000c49afc00000101080ad3845879407337de0101050ae4d6c0f0e4d6cba0FFFF").unwrap()
+    ),
+    // TODO: Add more tests with various tcp options
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b""),
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aa"),
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaa"),
@@ -270,6 +268,8 @@ mod tests {
         let tcp = Tcp::from_bytes(input);
         assert_eq!(expected, tcp);
     }
+
+    // TODO: Test parse_single_option as a stand-alone function
 
     #[test]
     fn test_quickcheck_test_tcp_from_bytes() {

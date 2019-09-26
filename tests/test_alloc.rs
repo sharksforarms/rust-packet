@@ -113,9 +113,7 @@ mod tests {
                 window: 9660,
                 checksum: 0xa958,
                 urgptr: 0,
-                options: 0,
-                padding: 0,
-                data: Vec::new(),
+                options: Vec::new(),
             },
             [0xFF, 0xFF].as_ref(),
         ));
