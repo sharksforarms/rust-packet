@@ -146,9 +146,6 @@ mod tests {
         &hex::decode("60000000012867403ffe802000000001026097fffe0769ea3ffe050100001c010200f8fffe03d9c0FFFF").unwrap()
     ),
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b""),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaaaaaaa"),
     )]
     fn test_ipv6_from_bytes(expected: Result<(Ipv6, &[u8]), LayerError>, input: &[u8]) {
         let ipv6 = Ipv6::from_bytes(input);

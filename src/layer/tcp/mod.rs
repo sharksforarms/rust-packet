@@ -1,5 +1,7 @@
 use crate::layer::{Layer, LayerError};
+use nom::bits::bytes;
 use nom::bits::streaming::{tag, take as take_bits};
+use nom::bytes::streaming::take as take_bytes;
 use nom::combinator::verify;
 use nom::sequence::tuple;
 use nom::IResult;
@@ -81,7 +83,9 @@ fn parse_single_option(rest: (&[u8], usize)) -> IResult<(&[u8], usize), TcpOptio
             Ok((rest, TcpOption::SackPerm))
         }
         0x5 => {
-            let (rest, size): (_, usize) = take_bits(8usize)(rest)?; // TODO enforce value on the size 10,18,26 or 34
+            let (rest, size): (_, usize) = verify(take_bits(8usize), |v: &usize| {
+                (*v == 10) || (*v == 18) || (*v == 26) || (*v == 34)
+            })(rest)?;
             let ptr_count: usize = (((size - 2) * 8) / 32) / 2; // TODO figure this out better
 
             let mut rest = rest;
@@ -106,7 +110,7 @@ fn parse_single_option(rest: (&[u8], usize)) -> IResult<(&[u8], usize), TcpOptio
         }
         _ => {
             // TODO maybe error out instead? are non-standard tcp options a thing?
-            let (rest, size): (_, usize) = take_bits(8usize)(rest)?;
+            let (rest, size): (_, usize) = verify(take_bits(8usize), |v: &usize| *v >= 2)(rest)?;
             let size: usize = size - 2; // 1 byte for kind and one byte for length inclusive
 
             let mut rest = rest;
@@ -126,7 +130,7 @@ impl Layer for Tcp {
     type LayerType = Tcp;
 
     /// Parsers an `Tcp` struct from bytes returning the struct and un-consumed data
-    fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
+    fn from_bytes(input: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
         fn parse_tcp_header(
             input: &[u8],
         ) -> IResult<(&[u8], usize), (u16, u16, u32, u32, u8, u16, u16, u16, u16, u16)> {
@@ -150,8 +154,8 @@ impl Layer for Tcp {
         ) -> IResult<(&[u8], usize), Vec<TcpOption>> {
             let options_count: usize = offset as usize - 5;
             let options_size: usize = (options_count * 32) / 8;
-            let mut option_data = (rest.0[..options_size].as_ref(), rest.1);
-            let rest = (rest.0[options_size..].as_ref(), 0usize);
+            let (rest, option_data) = bytes::<_, _, (_, _), _, _>(take_bytes(options_size))(rest)?;
+            let mut option_data = (option_data, 0usize);
 
             let mut options: Vec<TcpOption> = Vec::with_capacity(offset as usize - 5);
             // TODO: Might be padded with 0s
@@ -165,7 +169,7 @@ impl Layer for Tcp {
         }
 
         let (rest, (sport, dport, seq, ack, offset, reserved, flags, window, checksum, urgptr)) =
-            parse_tcp_header(bytes)?;
+            parse_tcp_header(input)?;
 
         let ((rest, _), options) = parse_tcp_options(rest, offset)?;
 
@@ -259,10 +263,14 @@ mod tests {
         &hex::decode("c213005086eebc64e4d6bb98b01000c49afc00000101080ad3845879407337de0101050ae4d6c0f0e4d6cba0FFFF").unwrap()
     ),
     // TODO: Add more tests with various tcp options
+
+    // panic regression: underflow
+    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), &hex::decode("7777770000000000000000777777777777f70a0a2f").unwrap()),
+    // panic regresion: unknown option kind with invalid size
+    case(Err(LayerError::Parse("parsing error has occurred: predicate verification".to_string())), &hex::decode("2500a50a5c2fc3c31a0a0a0a652565255cff0a25ff033b0025").unwrap()),
+    // panic regresion: invalid sack ptr option size
+    case(Err(LayerError::Parse("parsing error has occurred: predicate verification".to_string())), &hex::decode("2500a50a5c2fc3c31a0a0a0a6525651b5cffc2ff0501000325").unwrap()),
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b""),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaaaaaaa"),
     )]
     fn test_tcp_from_bytes(expected: Result<(Tcp, &[u8]), LayerError>, input: &[u8]) {
         let tcp = Tcp::from_bytes(input);

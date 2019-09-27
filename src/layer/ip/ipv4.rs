@@ -181,9 +181,6 @@ mod tests {
         &hex::decode("450000502bc1400040068f37c0a8016bc01efd7dFFFF").unwrap()
     ),
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b""),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaaaaaaa"),
     )]
     fn test_ipv4_from_bytes(expected: Result<(Ipv4, &[u8]), LayerError>, input: &[u8]) {
         let ipv4 = Ipv4::from_bytes(input);

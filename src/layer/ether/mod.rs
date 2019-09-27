@@ -74,9 +74,6 @@ mod tests {
         &hex::decode("ec086b507d584ccc6ad61f760800FFFF").unwrap()
     ),
     case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b""),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaa"),
-    case(Err(LayerError::Parse("incomplete data, needs more".to_string())), b"aaaaaaaaaaaa"),
     )]
     fn test_ether_from_bytes(expected: Result<(Ether, &[u8]), LayerError>, input: &[u8]) {
         let ether = Ether::from_bytes(input);
