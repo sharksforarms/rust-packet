@@ -61,7 +61,7 @@ jobs:
           - stable
           - nightly
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v1
       - name: run benchmark
         uses: matchai/criterion-compare-action@master
         env:
