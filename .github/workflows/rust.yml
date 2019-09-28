@@ -39,7 +39,7 @@ jobs:
         with:
           command: test --all
 
-   clippy:
+  clippy_check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
