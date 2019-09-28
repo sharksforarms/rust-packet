@@ -159,13 +159,13 @@ impl Layer for Tcp {
 
             let mut options: Vec<TcpOption> = Vec::with_capacity(offset as usize - 5);
             // TODO: Might be padded with 0s
-            while option_data.0.len() > 0 {
+            while !option_data.0.is_empty() {
                 let (option_data2, option) = parse_single_option(option_data)?;
                 options.push(option);
                 option_data = option_data2;
             }
 
-            return Ok((rest, options));
+            Ok((rest, options))
         }
 
         let (rest, (sport, dport, seq, ack, offset, reserved, flags, window, checksum, urgptr)) =
