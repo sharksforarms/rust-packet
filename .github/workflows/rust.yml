@@ -1,6 +1,6 @@
 on: [push, pull_request]
 
-name: Lints
+name: CI
 
 jobs:
   build:
@@ -19,7 +19,8 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: build --all
+          command: build
+          args: --all
 
   test:
     name: Test
@@ -37,9 +38,11 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: test --all
+          command: test
+          args: --all
 
-  clippy_check:
+  clippy:
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -49,9 +52,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
           
-  runBenchmark:
-    name: run benchmark
+  benchmark:
+    name: Benchmark
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - nightly
     steps:
       - uses: actions/checkout@master
       - name: run benchmark
