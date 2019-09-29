@@ -1,6 +1,5 @@
+use super::parser::parse_ipv4_header;
 use crate::layer::{Layer, LayerError};
-use nom::bits::streaming::take as take_bits;
-use nom::IResult;
 use std::net::Ipv4Addr;
 
 /// Ipv4 Header
@@ -45,44 +44,6 @@ impl Layer for Ipv4 {
 
     /// Parsers an `Ipv4` struct from bytes returning the struct and un-consumed data
     fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
-        fn parse_ip_header(
-            input: &[u8],
-        ) -> IResult<(&[u8], usize), (u8, u8, u8, u8, u16, u16, u8, u16, u8, u8, u16, u32, u32)>
-        {
-            let (rest, version): (_, u8) = take_bits(4usize)((input, 0usize))?;
-            let (rest, ihl): (_, u8) = take_bits(4usize)(rest)?;
-            let (rest, dscp): (_, u8) = take_bits(6usize)(rest)?;
-            let (rest, ecn): (_, u8) = take_bits(2usize)(rest)?;
-            let (rest, length): (_, u16) = take_bits(16usize)(rest)?;
-            let (rest, identification): (_, u16) = take_bits(16usize)(rest)?;
-            let (rest, flags): (_, u8) = take_bits(3usize)(rest)?;
-            let (rest, offset): (_, u16) = take_bits(13usize)(rest)?;
-            let (rest, ttl): (_, u8) = take_bits(8usize)(rest)?;
-            let (rest, protocol): (_, u8) = take_bits(8usize)(rest)?;
-            let (rest, checksum): (_, u16) = take_bits(16usize)(rest)?;
-            let (rest, src): (_, u32) = take_bits(32usize)(rest)?;
-            let (rest, dst): (_, u32) = take_bits(32usize)(rest)?;
-
-            Ok((
-                rest,
-                (
-                    version,
-                    ihl,
-                    dscp,
-                    ecn,
-                    length,
-                    identification,
-                    flags,
-                    offset,
-                    ttl,
-                    protocol,
-                    checksum,
-                    src,
-                    dst,
-                ),
-            ))
-        }
-
         let (
             (rest, _),
             (
@@ -100,7 +61,7 @@ impl Layer for Ipv4 {
                 src,
                 dst,
             ),
-        ) = parse_ip_header(bytes)?;
+        ) = parse_ipv4_header(bytes)?;
 
         let src: Ipv4Addr = src.into();
         let dst: Ipv4Addr = dst.into();

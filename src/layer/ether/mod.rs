@@ -1,15 +1,10 @@
 use crate::layer::{Layer, LayerError};
-use byteorder::{ByteOrder, NetworkEndian};
-use nom::bytes::streaming::take;
-use nom::combinator::map_res;
-use nom::sequence::tuple;
-use nom::IResult;
 use std::convert::TryInto;
 
 pub mod macaddress;
 pub use macaddress::MacAddress;
-
-const ETH_TYPE_SIZE: usize = 2;
+mod parser;
+use parser::parse_ether_header;
 
 #[derive(Debug, PartialEq)]
 pub struct Ether {
@@ -23,18 +18,7 @@ impl Layer for Ether {
 
     /// Parsers an `Ether` struct from bytes returning the struct and un-consumed data
     fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
-        fn take_mac_address(input: &[u8]) -> IResult<&[u8], &[u8]> {
-            take(macaddress::MACADDR_SIZE)(input)
-        }
-
-        fn take_ether_type(input: &[u8]) -> IResult<&[u8], u16> {
-            map_res(take(ETH_TYPE_SIZE), |v| -> Result<u16, LayerError> {
-                Ok(NetworkEndian::read_u16(v))
-            })(input)
-        }
-
-        let parser = tuple((take_mac_address, take_mac_address, take_ether_type));
-        let (rest, (dst, src, ether_type)) = parser(bytes)?;
+        let (rest, (dst, src, ether_type)) = parse_ether_header(bytes)?;
 
         Ok((
             Ether {

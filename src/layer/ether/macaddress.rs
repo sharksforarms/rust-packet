@@ -1,14 +1,9 @@
 use crate::layer::LayerError;
-use nom::bytes::complete::tag;
-use nom::bytes::complete::take_while_m_n;
-use nom::combinator::map_res;
-use nom::combinator::verify;
-use nom::multi::separated_nonempty_list;
-use nom::IResult;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::str::FromStr;
 
+use super::parser::parse_macaddr_str;
 pub(crate) const MACADDR_SIZE: usize = 6;
 
 #[derive(Debug, PartialEq)]
@@ -49,31 +44,11 @@ impl FromStr for MacAddress {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // Format: MM:MM:MM:SS:SS:SS
 
-        let mut data = [0; MACADDR_SIZE];
-
-        fn from_hex(input: &str) -> Result<u8, std::num::ParseIntError> {
-            u8::from_str_radix(input, 16)
-        }
-
-        fn is_hex_digit(c: char) -> bool {
-            c.is_digit(16)
-        }
-
-        fn hex_2(input: &str) -> IResult<&str, u8> {
-            map_res(take_while_m_n(2, 2, is_hex_digit), from_hex)(input)
-        }
-
-        let parser = verify(separated_nonempty_list(tag(":"), hex_2), |v: &Vec<u8>| {
-            v.len() == MACADDR_SIZE
-        });
-
-        let res = parser(s)
+        let res = parse_macaddr_str(s)
             .map_err(|_e| LayerError::Parse("parsing failure, invalid format".to_string()))?
             .1;
 
-        data.copy_from_slice(&res);
-
-        Ok(MacAddress(data))
+        MacAddress::from_slice(&res)
     }
 }
 

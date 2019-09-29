@@ -1,7 +1,7 @@
 use crate::layer::{Layer, LayerError};
-use nom::bits::streaming::take as take_bits;
-use nom::IResult;
 use std::net::Ipv6Addr;
+
+use super::parser::parse_ipv6_header;
 
 /// IPv6 Header
 /// ```text
@@ -47,37 +47,8 @@ impl Layer for Ipv6 {
 
     /// Parsers an `Ipv6` struct from bytes returning the struct and un-consumed data
     fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
-        fn parse_ip_header(
-            input: &[u8],
-        ) -> IResult<(&[u8], usize), (u8, u8, u8, u32, u16, u8, u8, u128, u128)> {
-            let (rest, version): (_, u8) = take_bits(4usize)((input, 0usize))?;
-            let (rest, ds): (_, u8) = take_bits(6usize)(rest)?;
-            let (rest, ecn): (_, u8) = take_bits(2usize)(rest)?;
-            let (rest, label): (_, u32) = take_bits(20usize)(rest)?;
-            let (rest, length): (_, u16) = take_bits(16usize)(rest)?;
-            let (rest, next_header): (_, u8) = take_bits(8usize)(rest)?;
-            let (rest, hop_limit): (_, u8) = take_bits(8usize)(rest)?;
-            let (rest, src): (_, u128) = take_bits(128usize)(rest)?;
-            let (rest, dst): (_, u128) = take_bits(128usize)(rest)?;
-
-            Ok((
-                rest,
-                (
-                    version,
-                    ds,
-                    ecn,
-                    label,
-                    length,
-                    next_header,
-                    hop_limit,
-                    src,
-                    dst,
-                ),
-            ))
-        }
-
         let ((rest, _), (version, ds, ecn, label, length, next_header, hop_limit, src, dst)) =
-            parse_ip_header(bytes)?;
+            parse_ipv6_header(bytes)?;
 
         let src: Ipv6Addr = src.into();
         let dst: Ipv6Addr = dst.into();
