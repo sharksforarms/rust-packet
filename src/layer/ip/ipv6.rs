@@ -43,10 +43,8 @@ pub struct Ipv6 {
 }
 
 impl Layer for Ipv6 {
-    type LayerType = Ipv6;
-
     /// Parsers an `Ipv6` struct from bytes returning the struct and un-consumed data
-    fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), LayerError> {
         let ((rest, _), (version, ds, ecn, label, length, next_header, hop_limit, src, dst)) =
             parse_ipv6_header(bytes)?;
 

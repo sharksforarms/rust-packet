@@ -40,10 +40,8 @@ pub struct Ipv4 {
 }
 
 impl Layer for Ipv4 {
-    type LayerType = Ipv4;
-
     /// Parsers an `Ipv4` struct from bytes returning the struct and un-consumed data
-    fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), LayerError> {
         let (
             (rest, _),
             (

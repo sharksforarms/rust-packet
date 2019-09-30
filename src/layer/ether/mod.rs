@@ -14,10 +14,8 @@ pub struct Ether {
 }
 
 impl Layer for Ether {
-    type LayerType = Ether;
-
     /// Parsers an `Ether` struct from bytes returning the struct and un-consumed data
-    fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), LayerError> {
         let (rest, (dst, src, ether_type)) = parse_ether_header(bytes)?;
 
         Ok((

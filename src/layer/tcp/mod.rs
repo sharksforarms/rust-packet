@@ -41,10 +41,8 @@ pub struct Tcp {
 }
 
 impl Layer for Tcp {
-    type LayerType = Tcp;
-
     /// Parsers an `Tcp` struct from bytes returning the struct and un-consumed data
-    fn from_bytes(input: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError> {
+    fn from_bytes(input: &[u8]) -> Result<(Self, &[u8]), LayerError> {
         let (rest, (sport, dport, seq, ack, offset, reserved, flags, window, checksum, urgptr)) =
             parse_tcp_header(input)?;
 

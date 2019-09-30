@@ -6,8 +6,9 @@ pub mod ip;
 pub mod tcp;
 
 pub trait Layer {
-    type LayerType: Sized;
-    fn from_bytes(bytes: &[u8]) -> Result<(Self::LayerType, &[u8]), LayerError>;
+    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), LayerError>
+    where
+        Self: Sized;
 }
 
 #[derive(Debug, PartialEq)]
