@@ -1,7 +1,7 @@
 set -xe
 
 ## build fuzzers
-TERM="" cargo fuzz list | xargs -i cargo +nightly fuzz run {} -- -runs=0
+TERM="" cargo fuzz list | xargs -i cargo fuzz run {} -- -runs=0
 
 wget -q -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/v2.4.29/fuzzit_Linux_x86_64
 chmod a+x fuzzit
