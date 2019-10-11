@@ -18,6 +18,7 @@ before_script:
 
 matrix:
   include:
+    # Coveralls
     - rust: nightly
       before_script:
         - export PATH=$HOME/.cargo/bin:$PATH
@@ -27,6 +28,14 @@ matrix:
         - mkdir -p target/kcov-master
       script:
         - cargo coveralls --verbose
+    # Fuzzit
+    - rust: nightly
+      before_script:
+        - export PATH=$HOME/.cargo/bin:$PATH
+        - cargo install cargo-fuzz
+      script:
+        - eval ./ci/fuzzit.sh regression
+        - eval ./ci/fuzzit.sh fuzzing
 
 addons:
   apt:
@@ -45,4 +54,4 @@ cache: cargo
 script:
   - eval cargo build --all --verbose
   - eval cargo test --all --verbose
-  - eval ./after-success.sh
+  - eval ./ci/after-success.sh
