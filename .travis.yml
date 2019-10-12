@@ -32,7 +32,7 @@ matrix:
     - rust: nightly
       before_script:
         - export PATH=$HOME/.cargo/bin:$PATH
-        - cargo install cargo-fuzz
+        - cargo install cargo-fuzz   || echo "cargo-fuzz already installed"
       script:
         - eval ./ci/fuzzit.sh regression
         - eval ./ci/fuzzit.sh fuzzing
