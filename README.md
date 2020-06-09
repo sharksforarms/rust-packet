@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/sharksforarms/rust-packet.svg?branch=master)](https://travis-ci.org/sharksforarms/rust-packet)
-[![Coverage Status](https://coveralls.io/repos/github/sharksforarms/rust-packet/badge.svg?branch=master)](https://coveralls.io/github/sharksforarms/rust-packet?branch=master)
+[![Actions Status](https://github.com/sharksforarms/rust-packet/workflows/CI/badge.svg)](https://github.com/sharksforarms/rust-packet/actions)
+[![codecov](https://codecov.io/gh/sharksforarms/rust-packet/branch/master/graph/badge.svg)](https://codecov.io/gh/sharksforarms/rust-packet)
 
 # Rust Packet
 
