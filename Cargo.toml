@@ -1,19 +1,31 @@
 [package]
+authors = ["sharks <sharks@sharks>"]
+edition = "2018"
 name = "rust-packet"
 version = "0.1.0"
-authors = ["sharksforarms"]
-edition = "2018"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sharksforarms/rust-packet"
+keywords = ["network", "packet", "parser", "generate", "scapy"]
+categories = ["network-programming", "parser-implementations", "parsing", "no-std"]
+description = "Network packet processing and generation"
+readme = "README.md"
+
+[features]
+default = ["std"]
+std = ["alloc"]
+alloc = ["deku/alloc"]
 
 [dependencies]
-nom = "5"
-byteorder = "1"
-hex = "0.3"
+deku = "0.4"
+nom = "5.1"
 
 [dev-dependencies]
-rstest = "0.3"
+rstest = "0.6"
 quickcheck = "0.9"
 criterion = "0.3"
-alloc_counter = "0.0.2"
+alloc_counter = "0.0.4"
+hex = "0.4"
+
 
 [[bench]]
 name = "benchmark"

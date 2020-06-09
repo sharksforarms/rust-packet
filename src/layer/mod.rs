@@ -2,19 +2,24 @@ use std::error;
 use std::fmt;
 
 pub mod ether;
-pub mod ip;
-pub mod tcp;
+// pub mod ip;
+// pub mod tcp;
 
-pub trait Layer {
-    fn from_bytes(bytes: &[u8]) -> Result<(Self, &[u8]), LayerError>
-    where
-        Self: Sized;
-}
+pub trait Layer {}
 
 #[derive(Debug, PartialEq)]
 pub enum LayerError {
     Parse(String),
     Unexpected(String),
+    DekuError(String),
+}
+
+use deku::error::DekuError;
+
+impl From<DekuError> for LayerError {
+    fn from(e: DekuError) -> Self {
+        LayerError::DekuError(e.to_string())
+    }
 }
 
 impl fmt::Display for LayerError {
@@ -22,6 +27,7 @@ impl fmt::Display for LayerError {
         match *self {
             LayerError::Parse(ref err) => write!(f, "Parse error: {}", err),
             LayerError::Unexpected(ref err) => write!(f, "Unexpected error: {}", err),
+            LayerError::DekuError(ref err) => write!(f, "Deku Error: {}", err),
         }
     }
 }
@@ -33,27 +39,3 @@ impl error::Error for LayerError {
         }
     }
 }
-
-macro_rules! nom_to_layererr {
-    ($typ:ty) => {
-        impl From<::nom::Err<($typ, ::nom::error::ErrorKind)>> for LayerError {
-            fn from(err: ::nom::Err<($typ, ::nom::error::ErrorKind)>) -> Self {
-                let msg = match err {
-                    ::nom::Err::Incomplete(needed) => match needed {
-                        ::nom::Needed::Size(_v) => format!("incomplete data, needs more"),
-                        ::nom::Needed::Unknown => format!("incomplete data"),
-                    },
-                    ::nom::Err::Error(e) | ::nom::Err::Failure(e) => {
-                        format!("parsing error has occurred: {}", e.1.description())
-                    }
-                };
-
-                LayerError::Parse(msg)
-            }
-        }
-    };
-}
-
-nom_to_layererr!(&str);
-nom_to_layererr!(&[u8]);
-nom_to_layererr!((&[u8], usize));

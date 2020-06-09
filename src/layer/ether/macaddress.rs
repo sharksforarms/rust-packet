@@ -1,92 +1,77 @@
 use crate::layer::LayerError;
+use deku::prelude::*;
+use nom::bytes::{complete::tag, complete::take_while_m_n};
+use nom::combinator::{map_res, verify};
+use nom::multi::separated_nonempty_list;
+use nom::IResult;
 use std::convert::TryFrom;
-use std::convert::TryInto;
-use std::str::FromStr;
 
-use super::parser::parse_macaddr_str;
-pub(crate) const MACADDR_SIZE: usize = 6;
+const MACADDR_SIZE: usize = 6;
 
-#[derive(Debug, PartialEq)]
+// Parse mac address from string and return a Vec<u8>
+// Format: MM:MM:MM:SS:SS:SS
+fn parse_macaddr_str(input: &str) -> IResult<&str, Vec<u8>> {
+    fn from_hex(input: &str) -> Result<u8, std::num::ParseIntError> {
+        u8::from_str_radix(input, 16)
+    }
+
+    fn is_hex_digit(c: char) -> bool {
+        c.is_digit(16)
+    }
+
+    fn hex_2(input: &str) -> IResult<&str, u8> {
+        map_res(take_while_m_n(2, 2, is_hex_digit), from_hex)(input)
+    }
+
+    verify(separated_nonempty_list(tag(":"), hex_2), |v: &Vec<u8>| {
+        v.len() == MACADDR_SIZE
+    })(input)
+}
+
+/// Type representing an ethernet mac address
+#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
 pub struct MacAddress(pub [u8; MACADDR_SIZE]);
 
-impl MacAddress {
-    pub fn from_bytes(input: [u8; MACADDR_SIZE]) -> Self {
-        MacAddress(input)
-    }
-    pub fn from_slice(input: &[u8]) -> Result<Self, LayerError> {
-        if input.len() != MACADDR_SIZE {
-            return Err(LayerError::Parse(format!(
-                "expected {} bytes got {}",
-                MACADDR_SIZE,
-                input.len()
-            )));
-        }
-
-        Ok(MacAddress::from_bytes(input.try_into().map_err(|e| {
-            LayerError::Unexpected(format!(
-                "during conversion of byte slice to mac address: {:?}",
-                e
-            ))
-        })?))
-    }
-}
-
-impl TryFrom<&[u8]> for MacAddress {
-    type Error = LayerError;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        MacAddress::from_slice(value)
-    }
-}
-impl FromStr for MacAddress {
+impl std::str::FromStr for MacAddress {
     type Err = LayerError;
 
+    /// From a `MM:MM:MM:SS:SS:SS` formatted mac address
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Format: MM:MM:MM:SS:SS:SS
-
         let res = parse_macaddr_str(s)
             .map_err(|_e| LayerError::Parse("parsing failure, invalid format".to_string()))?
             .1;
 
-        MacAddress::from_slice(&res)
+        Ok(MacAddress::try_from(res.as_ref())?)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest_parametrize;
+    use rstest::*;
 
-    #[test]
-    fn test_mac_from_bytes() {
-        let _mac = MacAddress::from_bytes([0, 0, 0, 0, 0, 0]);
-    }
+    #[rstest(input, expected,
+        case(&[1,2,3,4,5,6], MacAddress([1,2,3,4,5,6])),
 
-    #[rstest_parametrize(expected, input,
-    case(Ok(MacAddress([1,2,3,4,5,6])), &[1,2,3,4,5,6]),
-    case(Err(LayerError::Parse("expected 6 bytes got 7".to_string())), &[1,2,3,4,5,6,7]),
-    case(Err(LayerError::Parse("expected 6 bytes got 5".to_string())), &[1,2,3,4,5]),
-    case(Err(LayerError::Parse("expected 6 bytes got 0".to_string())), &[]),
+        // TODO: https://github.com/sharksforarms/deku/issues/47
+        // #[should_panic(expected = "reason")]
+        // case(&[1,2,3,4,5,6,7], MacAddress([1,2,3,4,5,6])),
     )]
-    fn test_mac_from_slice(expected: Result<MacAddress, LayerError>, input: &[u8]) {
-        let res = MacAddress::from_slice(input);
-        assert_eq!(expected, res);
-
-        // this is a proxy function to from_slice
-        let res: Result<MacAddress, LayerError> = input.try_into();
+    fn test_mac_from_bytes(expected: MacAddress, input: &[u8]) {
+        let res = MacAddress::try_from(input).unwrap();
         assert_eq!(expected, res);
     }
 
-    #[rstest_parametrize(expected, input,
-    case(Ok(MacAddress([0,0,0,0,0,0])), "00:00:00:00:00:00"),
-    case(Ok(MacAddress([170, 255, 255, 255, 255, 187])), "aa:ff:ff:ff:ff:bb"),
-    case(Ok(MacAddress([170, 255, 255, 255, 255, 187])), "AA:FF:FF:FF:FF:BB"),
-    case(Err(LayerError::Parse("parsing failure, invalid format".to_string())),""),
-    case(Err(LayerError::Parse("parsing failure, invalid format".to_string())),":"),
-    case(Err(LayerError::Parse("parsing failure, invalid format".to_string())),"00:00:00:00:00"),
-    case(Err(LayerError::Parse("parsing failure, invalid format".to_string())),"00:00:00:00:00:00:00"),
+    #[rstest(input, expected,
+        case("00:00:00:00:00:00", Ok(MacAddress([0,0,0,0,0,0]))),
+        case("aa:ff:ff:ff:ff:bb", Ok(MacAddress([170, 255, 255, 255, 255, 187]))),
+        case("AA:FF:FF:FF:FF:BB", Ok(MacAddress([170, 255, 255, 255, 255, 187]))),
+        case("", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
+        case(":", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
+        case("00:00:00:00:00", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
+        case("00:00:00:00:00:00:00", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
     )]
-    fn test_mac_from_str(expected: Result<MacAddress, LayerError>, input: &str) {
+    fn test_mac_from_str(input: &str, expected: Result<MacAddress, LayerError>) {
         let mac: Result<MacAddress, LayerError> = input.parse();
         assert_eq!(expected, mac);
     }
