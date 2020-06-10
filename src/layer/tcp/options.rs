@@ -1,4 +1,5 @@
 use deku::prelude::*;
+use std::convert::TryFrom;
 
 #[derive(Debug, PartialEq, DekuRead, DekuWrite)]
 #[deku(endian = "big")]
@@ -34,8 +35,10 @@ pub enum TcpOption {
             writer = "|x: u8, output_is_le: bool| -> Result<_, DekuError> {
                 let val = ((x * 2) * 4) + 2;
                 val.write(output_is_le, None)
-            }(*length, output_is_le)"
+            }(u8::try_from(value.len())?, output_is_le)"
         )]
+        // TODO: .update() will update the length to the len of the vector...
+        // this is not the correct format. The writer is overloaded to force the correct format
         length: u8,
         #[deku(count = "length")]
         value: Vec<SAckData>,
