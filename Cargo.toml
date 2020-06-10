@@ -25,6 +25,7 @@ quickcheck = "0.9"
 criterion = "0.3"
 alloc_counter = "0.0.4"
 hex = "0.4"
+hex-literal = "0.2"
 
 
 [[bench]]

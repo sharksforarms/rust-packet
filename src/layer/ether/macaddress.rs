@@ -29,7 +29,7 @@ fn parse_macaddr_str(input: &str) -> IResult<&str, Vec<u8>> {
 }
 
 /// Type representing an ethernet mac address
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Default, DekuRead, DekuWrite)]
 pub struct MacAddress(pub [u8; MACADDR_SIZE]);
 
 impl std::str::FromStr for MacAddress {
@@ -51,27 +51,31 @@ mod tests {
     use rstest::*;
 
     #[rstest(input, expected,
-        case(&[1,2,3,4,5,6], MacAddress([1,2,3,4,5,6])),
-
-        // TODO: https://github.com/sharksforarms/deku/issues/47
-        // #[should_panic(expected = "reason")]
-        // case(&[1,2,3,4,5,6,7], MacAddress([1,2,3,4,5,6])),
+        case(&[0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB], MacAddress([0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB])),
     )]
-    fn test_mac_from_bytes(expected: MacAddress, input: &[u8]) {
-        let res = MacAddress::try_from(input).unwrap();
-        assert_eq!(expected, res);
+    fn test_macaddress(input: &[u8], expected: MacAddress) {
+        let ret_read = MacAddress::try_from(input).unwrap();
+        assert_eq!(expected, ret_read);
+
+        let ret_write = ret_read.to_bytes().unwrap();
+        assert_eq!(input.to_vec(), ret_write);
+    }
+
+    #[test]
+    fn test_macaddress_default() {
+        assert_eq!(MacAddress([0x00u8; 6]), MacAddress::default())
     }
 
     #[rstest(input, expected,
         case("00:00:00:00:00:00", Ok(MacAddress([0,0,0,0,0,0]))),
-        case("aa:ff:ff:ff:ff:bb", Ok(MacAddress([170, 255, 255, 255, 255, 187]))),
-        case("AA:FF:FF:FF:FF:BB", Ok(MacAddress([170, 255, 255, 255, 255, 187]))),
+        case("aa:ff:ff:ff:ff:bb", Ok(MacAddress([0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB]))),
+        case("AA:FF:FF:FF:FF:BB", Ok(MacAddress([0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB]))),
         case("", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
         case(":", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
         case("00:00:00:00:00", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
         case("00:00:00:00:00:00:00", Err(LayerError::Parse("parsing failure, invalid format".to_string()))),
     )]
-    fn test_mac_from_str(input: &str, expected: Result<MacAddress, LayerError>) {
+    fn test_macaddress_from_str(input: &str, expected: Result<MacAddress, LayerError>) {
         let mac: Result<MacAddress, LayerError> = input.parse();
         assert_eq!(expected, mac);
     }

@@ -261,3 +261,31 @@ pub enum EtherType {
     #[deku(id = "0xffff")]
     MAX,
 }
+
+impl Default for EtherType {
+    fn default() -> Self {
+        EtherType::IPv4
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::convert::TryFrom;
+
+    #[test]
+    fn test_ethertype() {
+        let test_data = [0x86u8, 0xDD].to_vec();
+
+        let ret_read = EtherType::try_from(test_data.as_ref()).unwrap();
+        assert_eq!(EtherType::IPv6, ret_read);
+
+        let ret_write = ret_read.to_bytes().unwrap();
+        assert_eq!(test_data, ret_write);
+    }
+
+    #[test]
+    fn test_ethertype_default() {
+        assert_eq!(EtherType::IPv4, EtherType::default())
+    }
+}
