@@ -10,6 +10,9 @@ categories = ["network-programming", "parser-implementations", "parsing", "no-st
 description = "Network packet processing and generation"
 readme = "README.md"
 
+[lib]
+bench = false
+
 [features]
 default = ["std"]
 std = ["alloc"]
@@ -25,7 +28,6 @@ quickcheck = "0.9"
 criterion = "0.3"
 alloc_counter = "0.0.4"
 hex-literal = "0.2"
-
 
 [[bench]]
 name = "benchmark"
