@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["sharksforarms"]
 edition = "2018"
 
+[lib]
+bench = false
+
 [dependencies]
 nom = "5"
 byteorder = "1"
