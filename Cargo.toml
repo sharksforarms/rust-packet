@@ -16,7 +16,7 @@ std = ["alloc"]
 alloc = ["deku/alloc"]
 
 [dependencies]
-deku = { path = "../deku" }
+deku = "0.5"
 nom = "5.1"
 
 [dev-dependencies]
