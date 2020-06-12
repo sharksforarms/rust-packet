@@ -30,7 +30,7 @@ IPv6 Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 */
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 #[deku(endian = "big")]
 pub struct Ipv6 {
     #[deku(bits = "4")]

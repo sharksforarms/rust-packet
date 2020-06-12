@@ -27,7 +27,7 @@ Ethernet Frame Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 */
-#[derive(Debug, PartialEq, Default, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, Default, DekuRead, DekuWrite)]
 #[deku(endian = "big")]
 pub struct Ether {
     pub dst: MacAddress,

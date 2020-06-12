@@ -2,7 +2,7 @@ use deku::prelude::*;
 
 // Inspired from https://github.com/secdev/scapy/blob/master/scapy/libs/ethertypes.py
 
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 #[deku(id_type = "u16", endian = "big")]
 pub enum EtherType {
     /// IEEE 802.3 packet

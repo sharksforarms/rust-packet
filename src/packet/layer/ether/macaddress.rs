@@ -1,4 +1,4 @@
-use crate::layer::LayerError;
+use crate::packet::layer::LayerError;
 use deku::prelude::*;
 use nom::bytes::{complete::tag, complete::take_while_m_n};
 use nom::combinator::{map_res, verify};
@@ -29,7 +29,7 @@ fn parse_macaddr_str(input: &str) -> IResult<&str, Vec<u8>> {
 }
 
 /// Type representing an ethernet mac address
-#[derive(Debug, PartialEq, Default, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, Default, DekuRead, DekuWrite)]
 pub struct MacAddress(pub [u8; MACADDR_SIZE]);
 
 impl std::str::FromStr for MacAddress {

@@ -22,7 +22,7 @@ Ipv4 Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 */
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 #[deku(endian = "big")]
 pub struct Ipv4 {
     #[deku(bits = "4")]

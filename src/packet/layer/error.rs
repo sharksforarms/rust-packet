@@ -1,12 +1,3 @@
-use std::error;
-use std::fmt;
-
-pub mod ether;
-pub mod ip;
-pub mod tcp;
-
-pub trait Layer {}
-
 #[derive(Debug, PartialEq)]
 pub enum LayerError {
     Parse(String),
@@ -14,16 +5,14 @@ pub enum LayerError {
     DekuError(String),
 }
 
-use deku::error::DekuError;
-
-impl From<DekuError> for LayerError {
-    fn from(e: DekuError) -> Self {
+impl From<deku::error::DekuError> for LayerError {
+    fn from(e: deku::error::DekuError) -> Self {
         LayerError::DekuError(e.to_string())
     }
 }
 
-impl fmt::Display for LayerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl core::fmt::Display for LayerError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match *self {
             LayerError::Parse(ref err) => write!(f, "Parse error: {}", err),
             LayerError::Unexpected(ref err) => write!(f, "Unexpected error: {}", err),
@@ -32,8 +21,9 @@ impl fmt::Display for LayerError {
     }
 }
 
-impl error::Error for LayerError {
-    fn cause(&self) -> Option<&dyn error::Error> {
+#[cfg(feature = "std")]
+impl std::error::Error for LayerError {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
         match *self {
             _ => Some(self),
         }

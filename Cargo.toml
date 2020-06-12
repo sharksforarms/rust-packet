@@ -16,7 +16,7 @@ std = ["alloc"]
 alloc = ["deku/alloc"]
 
 [dependencies]
-deku = "0.4"
+deku = { path = "../deku" }
 nom = "5.1"
 
 [dev-dependencies]
@@ -24,7 +24,6 @@ rstest = "0.6"
 quickcheck = "0.9"
 criterion = "0.3"
 alloc_counter = "0.0.4"
-hex = "0.4"
 hex-literal = "0.2"
 
 

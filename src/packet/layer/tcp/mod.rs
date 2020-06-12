@@ -28,7 +28,7 @@ TCP Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 */
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 #[deku(endian = "big")]
 pub struct Tcp {
     pub sport: u16,
@@ -44,6 +44,23 @@ pub struct Tcp {
     pub urgptr: u16,
     #[deku(reader = "Tcp::read_options((offset - 5)*4, rest, input_is_le)")]
     pub options: Vec<TcpOption>,
+}
+
+impl Default for Tcp {
+    fn default() -> Self {
+        Tcp {
+            sport: 0,
+            dport: 0,
+            seq: 0,
+            ack: 0,
+            offset: 0,
+            flags: 0,
+            window: 0,
+            checksum: 0,
+            urgptr: 0,
+            options: Vec::new(),
+        }
+    }
 }
 
 impl Tcp {
@@ -62,6 +79,11 @@ impl Tcp {
 
         let count = 6usize;
         let (option_rest, value) = Vec::<TcpOption>::read(slice, input_is_le, None, Some(count))?;
+        if !option_rest.is_empty() {
+            return Err(DekuError::Parse(format!(
+                "Not all TCP option data consumed"
+            )));
+        }
 
         Ok((rest, value))
     }
@@ -113,7 +135,7 @@ mod tests {
                     },
                     TcpOption::NOP, TcpOption::NOP,
                     TcpOption::SAck {
-                        length: 1,
+                        length: 10,
                         value: vec![SAckData { begin: 3839279344, end: 3839282080 }]
                     },
                 ]
@@ -126,5 +148,24 @@ mod tests {
 
         let ret_write = ret_read.to_bytes().unwrap();
         assert_eq!(input.to_vec(), ret_write);
+    }
+
+    #[test]
+    fn test_tcp_default() {
+        assert_eq!(
+            Tcp {
+                sport: 0,
+                dport: 0,
+                seq: 0,
+                ack: 0,
+                offset: 0,
+                flags: 0,
+                window: 0,
+                checksum: 0,
+                urgptr: 0,
+                options: Vec::new(),
+            },
+            Tcp::default()
+        )
     }
 }
