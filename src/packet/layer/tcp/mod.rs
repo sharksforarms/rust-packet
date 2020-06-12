@@ -80,9 +80,9 @@ impl Tcp {
         let count = 6usize;
         let (option_rest, value) = Vec::<TcpOption>::read(slice, input_is_le, None, Some(count))?;
         if !option_rest.is_empty() {
-            return Err(DekuError::Parse(format!(
-                "Not all TCP option data consumed"
-            )));
+            return Err(DekuError::Parse(
+                "Not all TCP option data consumed".to_string(),
+            ));
         }
 
         Ok((rest, value))

@@ -1,16 +1,16 @@
 pub mod layer;
 use layer::Layer;
 
-struct Packet {
+pub struct Packet {
     layers: Vec<Box<dyn Layer>>,
 }
 
 impl Packet {
-    fn to_bytes(self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut acc = Vec::new();
-        for layer in self.layers {
+        for layer in &self.layers {
             acc.extend(
-                deku::DekuWrite::write(&*layer, false, None)
+                deku::DekuWrite::write(&**layer, false, None)
                     .unwrap()
                     .into_vec(),
             );
