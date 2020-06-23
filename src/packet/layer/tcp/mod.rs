@@ -42,7 +42,7 @@ pub struct Tcp {
     pub window: u16,
     pub checksum: u16,
     pub urgptr: u16,
-    #[deku(reader = "Tcp::read_options((offset - 5)*4, rest, input_is_le)")]
+    #[deku(reader = "Tcp::read_options(offset, rest, input_is_le)")]
     pub options: Vec<TcpOption>,
 }
 
@@ -65,27 +65,34 @@ impl Default for Tcp {
 
 impl Tcp {
     fn read_options(
-        length: u8, // in bytes
+        offset: u8, // tcp offset header field
         rest: &BitSlice<Msb0, u8>,
         input_is_le: bool,
     ) -> Result<(&BitSlice<Msb0, u8>, Vec<TcpOption>), DekuError> {
+        let length = offset
+            .checked_sub(5)
+            .and_then(|v| v.checked_mul(4))
+            .ok_or_else(|| DekuError::Parse("error: invalid tcp offset".to_string()))?;
+
         if length == 0 {
             return Ok((rest, Vec::new()));
         }
 
         // slice off length from rest
         let bits: usize = length as usize * 8;
-        let (slice, rest) = rest.split_at(bits);
+        let (mut option_rest, rest) = rest.split_at(bits);
 
-        let count = 6usize;
-        let (option_rest, value) = Vec::<TcpOption>::read(slice, input_is_le, None, Some(count))?;
-        if !option_rest.is_empty() {
-            return Err(DekuError::Parse(
-                "Not all TCP option data consumed".to_string(),
-            ));
+        let mut tcp_options = Vec::with_capacity(1); // at-least 1
+        while !option_rest.is_empty() {
+            let (option_rest_new, tcp_option) =
+                TcpOption::read(option_rest, input_is_le, None, None)?;
+
+            tcp_options.push(tcp_option);
+
+            option_rest = option_rest_new;
         }
 
-        Ok((rest, value))
+        Ok((rest, tcp_options))
     }
 }
 
@@ -140,6 +147,11 @@ mod tests {
                     },
                 ]
             },
+        ),
+        #[should_panic(expected = "error: invalid tcp offset")]
+        case(
+            &hex!("0d2c005038affe14114c618c101825bca9580000"),
+            Tcp::default(),
         ),
     )]
     fn test_tcp(input: &[u8], expected: Tcp) {

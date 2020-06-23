@@ -11,6 +11,12 @@ impl From<deku::error::DekuError> for LayerError {
     }
 }
 
+impl From<std::net::AddrParseError> for LayerError {
+    fn from(e: std::net::AddrParseError) -> Self {
+        LayerError::Parse(e.to_string())
+    }
+}
+
 impl core::fmt::Display for LayerError {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match *self {

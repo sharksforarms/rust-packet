@@ -6,7 +6,7 @@ use criterion::black_box;
 use criterion::Criterion;
 use hex_literal::hex;
 
-use rust_packet::packet::layer::{ether::Ether, ip::Ipv4, ip::Ipv6, tcp::Tcp, Layer};
+use rust_packet::prelude::*;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("ether_from_bytes", |b| {
