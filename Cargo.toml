@@ -19,7 +19,7 @@ std = ["alloc"]
 alloc = ["deku/alloc"]
 
 [dependencies]
-deku = "0.5"
+deku = "0.6"
 nom = "5.1"
 
 [dev-dependencies]

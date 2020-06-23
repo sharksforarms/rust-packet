@@ -26,11 +26,10 @@ mod tests {
         assert_eq!(
             count_alloc(|| {
                 let ether = Ether::try_from(input).unwrap();
-
                 assert_eq!(expected, ether);
             })
             .0,
-            (13, 0, 13)
+            (0, 0, 0)
         );
     }
 
@@ -59,7 +58,7 @@ mod tests {
                 assert_eq!(expected, ip);
             })
             .0,
-            (13, 0, 13)
+            (6, 0, 6)
         );
     }
 
@@ -87,7 +86,7 @@ mod tests {
                 assert_eq!(expected, ip);
             })
             .0,
-            (9, 1, 9)
+            (4, 1, 4)
         );
     }
 
@@ -113,7 +112,7 @@ mod tests {
                 assert_eq!(expected, tcp);
             })
             .0,
-            (9, 0, 9)
+            (3, 0, 3)
         );
     }
 }
