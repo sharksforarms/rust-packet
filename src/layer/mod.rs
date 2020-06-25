@@ -1,34 +1,17 @@
-#[macro_use]
 pub mod ether;
-#[macro_use]
 pub mod ip;
-#[macro_use]
+pub mod raw;
 pub mod tcp;
 
 pub use ether::Ether;
 pub use ip::{IpProtocol, Ipv4, Ipv6};
+pub use raw::Raw;
 pub use tcp::Tcp;
 
 pub mod error;
 pub use error::LayerError;
 
 use deku::prelude::*;
-
-#[derive(Debug, PartialEq, DekuWrite)]
-pub struct Raw {
-    pub data: Vec<u8>,
-    #[deku(skip)]
-    bit_offset: usize,
-}
-
-impl Raw {
-    pub fn new(data: &[u8], bit_offset: usize) -> Self {
-        Raw {
-            data: data.to_vec(),
-            bit_offset,
-        }
-    }
-}
 
 macro_rules! do_layer {
     ($layer:ident, $input:ident, $layers:ident) => {{
@@ -55,7 +38,7 @@ macro_rules! gen_layer_types {
                 }
             }
 
-            pub fn consume_layer<'a>(rest: (&'a [u8], usize), layers: &mut Vec<Layer>, max_depth: usize) -> Result<(), LayerError> {
+            fn consume_layer<'a>(rest: (&'a [u8], usize), layers: &mut Vec<Layer>, max_depth: usize) -> Result<(), LayerError> {
                 if max_depth == 0 {
                     if !rest.0.is_empty() {
                         layers.push(
@@ -66,34 +49,39 @@ macro_rules! gen_layer_types {
                     return Ok(())
                 }
 
-                let new_rest = match layers.iter().last().unwrap() {
-                    Layer::Ether(eth) => {
-                        match eth.ether_type {
-                            ether::EtherType::IPv4 => {
-                                do_layer!(Ipv4, rest, layers)
-                            },
-                            _ => {
-                                // eth type not supported
-                                return Layer::consume_layer(rest, layers, 0);
+                let new_rest = if let Some(previous_layer) = layers.iter().last() {
+                    match previous_layer {
+                        Layer::Ether(eth) => {
+                            match eth.ether_type {
+                                ether::EtherType::IPv4 => {
+                                    do_layer!(Ipv4, rest, layers)
+                                },
+                                _ => {
+                                    // eth type not supported
+                                    return Layer::consume_layer(rest, layers, 0);
+                                }
                             }
-                        }
 
-                    },
-                    Layer::Ipv4(ipv4) => {
-                        match ipv4.protocol {
-                            IpProtocol::TCP => {
-                                do_layer!(Tcp, rest, layers)
-                            },
-                            _ => {
-                                // ip protocol not supported
-                                return Layer::consume_layer(rest, layers, 0);
+                        },
+                        Layer::Ipv4(ipv4) => {
+                            match ipv4.protocol {
+                                IpProtocol::TCP => {
+                                    do_layer!(Tcp, rest, layers)
+                                },
+                                _ => {
+                                    // ip protocol not supported
+                                    return Layer::consume_layer(rest, layers, 0);
+                                }
                             }
                         }
+                        _ => {
+                            // nothing to consume next, create raw layer with rest
+                            return Layer::consume_layer(rest, layers, 0);
+                        }
                     }
-                    _ => {
-                        // nothing to consume next, create raw layer with rest
-                        return Layer::consume_layer(rest, layers, 0);
-                    }
+
+                } else {
+                    unreachable!()
                 };
 
                 Layer::consume_layer(new_rest, layers, max_depth-1)
@@ -143,11 +131,18 @@ macro_rules! __builder_impl {
                 ..Default::default()
             };
 
-            layer.update();
+            layer.update()?;
 
             Ok(crate::layer::Layer::$layer_type(layer))
         }()
     });
+}
+
+#[macro_export]
+macro_rules! raw {
+    ($($field_ident:ident : $field:expr),* $(,)?) => (
+        $crate::__builder_impl!(Raw, $($field_ident : $field),*)
+    );
 }
 
 #[macro_export]
