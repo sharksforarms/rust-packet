@@ -40,4 +40,5 @@ mod tests {
     test_layer!(test_tcp, Tcp, tcp, tcp_mut);
     test_layer!(test_ipv4, Ipv4, ipv4, ipv4_mut);
     test_layer!(test_ipv6, Ipv6, ipv6, ipv6_mut);
+    test_layer!(test_raw, Raw, raw, raw_mut);
 }
