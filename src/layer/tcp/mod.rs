@@ -3,6 +3,63 @@ use deku::prelude::*;
 mod options;
 pub use options::{SAckData, TcpOption, TimestampData};
 
+#[derive(Debug, Clone, PartialEq, DekuRead, DekuWrite)]
+pub struct TcpFlags {
+    #[deku(bits = "3")]
+    pub reserved: u8,
+    #[deku(bits = "1")]
+    pub nonce: u8,
+    /// Congestion Window Reduced (CWR)
+    #[deku(bits = "1")]
+    pub crw: u8,
+    /// ECN-Echo
+    #[deku(bits = "1")]
+    pub ecn: u8,
+    #[deku(bits = "1")]
+    pub urgent: u8,
+    #[deku(bits = "1")]
+    pub ack: u8,
+    #[deku(bits = "1")]
+    pub push: u8,
+    #[deku(bits = "1")]
+    pub reset: u8,
+    #[deku(bits = "1")]
+    pub syn: u8,
+    #[deku(bits = "1")]
+    pub fin: u8,
+}
+
+impl Default for TcpFlags {
+    fn default() -> Self {
+        TcpFlags {
+            reserved: 0,
+            nonce: 0,
+            crw: 0,
+            ecn: 0,
+            urgent: 0,
+            ack: 0,
+            push: 0,
+            reset: 0,
+            syn: 0,
+            fin: 0,
+        }
+    }
+}
+
+impl std::fmt::Display for TcpFlags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}{}{}{}",
+            if self.syn == 1 { "S" } else { "" },
+            if self.push == 1 { "P" } else { "" },
+            if self.ack == 1 { "A" } else { "" },
+            if self.fin == 1 { "F" } else { "" },
+            if self.reset == 1 { "R" } else { "" },
+        )
+    }
+}
+
 /**
 TCP Header
 
@@ -38,7 +95,7 @@ pub struct Tcp {
     #[deku(bits = "4")]
     pub offset: u8, // size of tcp header in 32-bit words
     #[deku(bits = "12")]
-    pub flags: u16,
+    pub flags: TcpFlags,
     pub window: u16,
     pub checksum: u16,
     pub urgptr: u16,
@@ -54,7 +111,7 @@ impl Default for Tcp {
             seq: 0,
             ack: 0,
             offset: 0,
-            flags: 0,
+            flags: TcpFlags::default(),
             window: 0,
             checksum: 0,
             urgptr: 0,
@@ -112,7 +169,7 @@ mod tests {
                 seq: 951057940,
                 ack: 290218380,
                 offset: 5,
-                flags: 0x018,
+                flags: TcpFlags { ack: 1, push: 1, ..TcpFlags::default()},
                 window: 9660,
                 checksum: 0xa958,
                 urgptr: 0,
@@ -127,7 +184,7 @@ mod tests {
                 seq: 2263792740,
                 ack: 3839277976,
                 offset: 11,
-                flags: 0x010,
+                flags: TcpFlags { ack: 1, ..TcpFlags::default()},
                 window: 196,
                 checksum: 0x9afc,
                 urgptr: 0,
@@ -171,7 +228,7 @@ mod tests {
                 seq: 0,
                 ack: 0,
                 offset: 0,
-                flags: 0,
+                flags: TcpFlags::default(),
                 window: 0,
                 checksum: 0,
                 urgptr: 0,
