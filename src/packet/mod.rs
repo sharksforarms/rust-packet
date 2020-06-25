@@ -1,9 +1,7 @@
 pub mod error;
 pub use error::PacketError;
 
-#[macro_use]
-pub mod layer;
-use layer::{Layer, LayerType};
+use crate::layer::{Layer, LayerType};
 
 #[derive(Debug)]
 pub struct Packet {
@@ -28,7 +26,7 @@ impl Packet {
 macro_rules! impl_packet_layer {
     ($layer:ident, $func:ident, $func_mut:ident) => {
         impl Packet {
-            pub fn $func(&self) -> Option<&layer::$layer> {
+            pub fn $func(&self) -> Option<&crate::layer::$layer> {
                 let layer = self
                     .layers
                     .iter()
@@ -41,7 +39,7 @@ macro_rules! impl_packet_layer {
                 }
             }
 
-            pub fn $func_mut(&mut self) -> Option<&mut layer::$layer> {
+            pub fn $func_mut(&mut self) -> Option<&mut crate::layer::$layer> {
                 let layer = self
                     .layers
                     .iter_mut()
@@ -94,6 +92,8 @@ macro_rules! pkt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::layer::tcp::TcpOption;
+    use crate::{ether, ipv4, tcp};
 
     #[test]
     fn test_packet() {
@@ -109,7 +109,7 @@ mod tests {
             tcp! {
                 sport: 80,
                 options: vec![
-                    layer::tcp::TcpOption::NOP,
+                    TcpOption::NOP,
                 ]
             }?
         }

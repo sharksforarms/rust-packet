@@ -54,15 +54,15 @@ gen_layer_types!(Ether, Ipv4, Ipv6, Tcp,);
 macro_rules! __builder_impl {
     ($layer_type:ident, $($field_ident:ident : $field:expr),*) => ({
         use deku::DekuUpdate;
-        || -> Result<_, crate::packet::layer::LayerError> {
-            let mut layer = crate::packet::layer::$layer_type {
+        || -> Result<_, crate::layer::LayerError> {
+            let mut layer = crate::layer::$layer_type {
                 $($field_ident : $field,)*
                 ..Default::default()
             };
 
             layer.update()?;
 
-            Ok(crate::packet::layer::Layer::$layer_type(layer))
+            Ok(crate::layer::Layer::$layer_type(layer))
         }()
     });
 }
