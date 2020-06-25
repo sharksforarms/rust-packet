@@ -8,8 +8,9 @@ mod tests {
 
     use alloc_counter::count_alloc;
     use hex_literal::hex;
-    use rust_packet::packet::layer::{
-        ether::Ether, ether::EtherType, ether::MacAddress, ip::Ipv4, ip::Ipv6, tcp::Tcp,
+    use rust_packet::layer::{
+        ether::Ether, ether::EtherType, ether::MacAddress, ip::IpProtocol, ip::Ipv4, ip::Ipv6,
+        tcp::Tcp,
     };
     use std::convert::TryFrom;
     use std::net::Ipv4Addr;
@@ -46,7 +47,7 @@ mod tests {
             flags: 2,
             offset: 0,
             ttl: 64,
-            protocol: 6,
+            protocol: IpProtocol::TCP,
             checksum: 0x8f37,
             src: Ipv4Addr::new(192, 168, 1, 107),
             dst: Ipv4Addr::new(192, 30, 253, 125),
@@ -74,7 +75,7 @@ mod tests {
             ecn: 0,
             label: 0,
             length: 296,
-            next_header: 103,
+            next_header: IpProtocol::PIM,
             hop_limit: 64,
             src: "3ffe:8020:0:1:260:97ff:fe07:69ea".parse().unwrap(),
             dst: "3ffe:501:0:1c01:200:f8ff:fe03:d9c0".parse().unwrap(),
@@ -112,7 +113,7 @@ mod tests {
                 assert_eq!(expected, tcp);
             })
             .0,
-            (3, 0, 3)
+            (2, 0, 2)
         );
     }
 }

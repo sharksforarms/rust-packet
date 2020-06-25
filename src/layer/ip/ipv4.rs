@@ -1,3 +1,4 @@
+use super::IpProtocol;
 use deku::prelude::*;
 use std::net::Ipv4Addr;
 
@@ -40,7 +41,7 @@ pub struct Ipv4 {
     #[deku(bits = "13")]
     pub offset: u16, // Fragment Offset
     pub ttl: u8,             // Time To Live
-    pub protocol: u8,        // Protocol
+    pub protocol: IpProtocol, // Protocol
     // TODO: reader/writer for checksum validation and updating
     pub checksum: u16, // Header checksum
     pub src: Ipv4Addr, // Source IP Address
@@ -61,7 +62,7 @@ impl Default for Ipv4 {
             flags: 0,
             offset: 0,
             ttl: 0,
-            protocol: 0,
+            protocol: IpProtocol::HOPOPT,
             checksum: 0,
             src: Ipv4Addr::new(127, 0, 0, 1),
             dst: Ipv4Addr::new(127, 0, 0, 1),
@@ -89,7 +90,7 @@ mod tests {
                 flags: 0,
                 offset: 0,
                 ttl: 128,
-                protocol: 17,
+                protocol: IpProtocol::UDP,
                 checksum: 0x63a5,
                 src: Ipv4Addr::new(145,254,160,237),
                 dst: Ipv4Addr::new(145,253,2,203),
@@ -117,7 +118,7 @@ mod tests {
                 flags: 0,
                 offset: 0,
                 ttl: 0,
-                protocol: 0,
+                protocol: IpProtocol::HOPOPT,
                 checksum: 0,
                 src: Ipv4Addr::new(127, 0, 0, 1),
                 dst: Ipv4Addr::new(127, 0, 0, 1),
