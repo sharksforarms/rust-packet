@@ -9,8 +9,9 @@ mod tests {
     use alloc_counter::count_alloc;
     use hex_literal::hex;
     use rust_packet::layer::{
-        ether::Ether, ether::EtherType, ether::MacAddress, ip::IpProtocol, ip::Ipv4, ip::Ipv6,
-        tcp::Tcp,
+        ether::{Ether, EtherType, MacAddress},
+        ip::{IpProtocol, Ipv4, Ipv6},
+        tcp::{Tcp, TcpFlags},
     };
     use std::convert::TryFrom;
     use std::net::Ipv4Addr;
@@ -100,7 +101,11 @@ mod tests {
             seq: 951057940,
             ack: 290218380,
             offset: 5,
-            flags: 0x018,
+            flags: TcpFlags {
+                ack: 1,
+                push: 1,
+                ..TcpFlags::default()
+            },
             window: 9660,
             checksum: 0xa958,
             urgptr: 0,
@@ -113,7 +118,7 @@ mod tests {
                 assert_eq!(expected, tcp);
             })
             .0,
-            (2, 0, 2)
+            (11, 0, 11)
         );
     }
 }
