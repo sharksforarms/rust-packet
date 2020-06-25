@@ -1,4 +1,4 @@
-use crate::packet::layer::LayerError;
+use crate::layer::LayerError;
 
 #[derive(Debug, PartialEq)]
 pub enum PacketError {
