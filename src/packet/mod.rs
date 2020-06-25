@@ -13,6 +13,11 @@ impl Packet {
         Packet { layers }
     }
 
+    pub fn from_bytes(input: &[u8]) -> Result<Packet, PacketError> {
+        let layers = Layer::from_bytes_multi_layer(input)?;
+        Ok(Packet::new(layers))
+    }
+
     pub fn to_bytes(&self) -> Result<Vec<u8>, PacketError> {
         let mut acc = Vec::new();
         for layer in &self.layers {
@@ -59,6 +64,7 @@ impl_packet_layer!(Ether, ether, ether_mut);
 impl_packet_layer!(Ipv4, ipv4, ipv4_mut);
 impl_packet_layer!(Ipv6, ipv6, ipv6_mut);
 impl_packet_layer!(Tcp, tcp, tcp_mut);
+impl_packet_layer!(Raw, raw, raw_mut);
 
 impl std::ops::Index<LayerType> for Packet {
     type Output = Layer;
@@ -92,44 +98,68 @@ macro_rules! pkt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layer::tcp::TcpOption;
-    use crate::{ether, ipv4, tcp};
+    use hex_literal::hex;
+
+    use crate::layer::ether::{Ether, EtherType, MacAddress};
+    use crate::layer::ip::{IpProtocol, Ipv4};
+    use crate::layer::tcp::{Tcp, TcpFlags};
+    use crate::layer::Raw;
 
     #[test]
-    fn test_packet() {
-        let mut pkt = pkt! {
-            ether! {
-                src: "00:0a:95:9d:68:16".parse()?,
-                dst: "00:0a:95:9d:68:17".parse()?,
-            }?,
-            ipv4! {
-                src: "127.0.0.1".parse()?,
-                dst: "127.0.0.2".parse()?,
-            }?,
-            tcp! {
-                sport: 80,
-                options: vec![
-                    TcpOption::NOP,
-                ]
-            }?
-        }
-        .unwrap();
+    fn test_packet_read_multi_layer() {
+        // Ether / IP / TCP / "hello world"
+        let test_data = hex!("ffffffffffff0000000000000800450000330001000040067cc27f0000017f00000100140050000000000000000050022000ffa2000068656c6c6f20776f726c64");
 
-        if let Layer::Ipv4(layer) = &mut pkt[LayerType::Ipv4] {
-            (*layer).src = "127.0.0.4".parse().unwrap();
-        }
+        let pkt = Packet::from_bytes(test_data.as_ref()).unwrap();
+        assert_eq!(4, pkt.layers.len());
 
-        pkt.tcp_mut().unwrap().sport = 81;
+        assert_eq!(
+            Layer::Ether(Ether {
+                dst: MacAddress([255, 255, 255, 255, 255, 255]),
+                src: MacAddress([0, 0, 0, 0, 0, 0]),
+                ether_type: EtherType::IPv4
+            }),
+            pkt.layers[0]
+        );
 
-        println!("{:#?}", pkt[LayerType::Ipv4]);
-        println!("{:#?}", pkt[LayerType::Tcp]);
-        println!("{:#?}", pkt.ipv6());
-        println!("{:x?}", pkt.to_bytes().unwrap());
+        assert_eq!(
+            Layer::Ipv4(Ipv4 {
+                version: 4,
+                ihl: 5,
+                dscp: 0,
+                ecn: 0,
+                length: 51,
+                identification: 1,
+                flags: 0,
+                offset: 0,
+                ttl: 64,
+                protocol: IpProtocol::TCP,
+                checksum: 31938,
+                src: "127.0.0.1".parse().unwrap(),
+                dst: "127.0.0.1".parse().unwrap()
+            }),
+            pkt.layers[1]
+        );
 
-        let _ipv4 = ipv4! {
-            src: "127.0.0.....2".parse()?,
-        };
+        assert_eq!(
+            Layer::Tcp(Tcp {
+                sport: 20,
+                dport: 80,
+                seq: 0,
+                ack: 0,
+                offset: 5,
+                flags: TcpFlags {
+                    syn: 1,
+                    ..TcpFlags::default()
+                },
+                window: 8192,
+                checksum: 65442,
+                urgptr: 0,
+                options: vec![]
+            }),
+            pkt.layers[2]
+        );
 
-        // TODO
+        assert_eq!(Layer::Raw(Raw::new(b"hello world", 0)), pkt.layers[3]);
     }
 }
