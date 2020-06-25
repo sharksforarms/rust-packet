@@ -1,3 +1,4 @@
+use super::IpProtocol;
 use deku::prelude::*;
 use std::net::Ipv6Addr;
 
@@ -41,11 +42,11 @@ pub struct Ipv6 {
     pub ecn: u8, // Explicit Congestion Notification
     #[deku(bits = "20")]
     pub label: u32, // Flow Label
-    pub length: u16,     // Payload Length
-    pub next_header: u8, // Next Header
-    pub hop_limit: u8,   // Hop Limit
-    pub src: Ipv6Addr,   // Source IP Address
-    pub dst: Ipv6Addr,   // Destination IP Address
+    pub length: u16,             // Payload Length
+    pub next_header: IpProtocol, // Next Header
+    pub hop_limit: u8,           // Hop Limit
+    pub src: Ipv6Addr,           // Source IP Address
+    pub dst: Ipv6Addr,           // Destination IP Address
 }
 
 impl Default for Ipv6 {
@@ -56,7 +57,7 @@ impl Default for Ipv6 {
             ecn: 0,
             label: 0,
             length: 0,
-            next_header: 0,
+            next_header: IpProtocol::IPV6NONXT,
             hop_limit: 0,
             src: Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1),
             dst: Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1),
@@ -80,7 +81,7 @@ mod tests {
                 ecn: 0,
                 label: 0,
                 length: 296,
-                next_header: 103,
+                next_header: IpProtocol::PIM,
                 hop_limit: 64,
                 src: "3ffe:8020:0:1:260:97ff:fe07:69ea".parse().unwrap(),
                 dst: "3ffe:501:0:1c01:200:f8ff:fe03:d9c0".parse().unwrap(),
@@ -101,7 +102,7 @@ mod tests {
                 ecn: 0,
                 label: 0,
                 length: 0,
-                next_header: 0,
+                next_header: IpProtocol::IPV6NONXT,
                 hop_limit: 0,
                 src: Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1),
                 dst: Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1),
