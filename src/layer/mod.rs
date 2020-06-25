@@ -6,11 +6,38 @@ pub mod ip;
 pub mod tcp;
 
 pub use ether::Ether;
-pub use ip::{Ipv4, Ipv6};
+pub use ip::{IpProtocol, Ipv4, Ipv6};
 pub use tcp::Tcp;
 
 pub mod error;
 pub use error::LayerError;
+
+use deku::prelude::*;
+
+#[derive(Debug, PartialEq, DekuWrite)]
+pub struct Raw {
+    pub data: Vec<u8>,
+    #[deku(skip)]
+    bit_offset: usize,
+}
+
+impl Raw {
+    pub fn new(data: &[u8], bit_offset: usize) -> Self {
+        Raw {
+            data: data.to_vec(),
+            bit_offset,
+        }
+    }
+}
+
+macro_rules! do_layer {
+    ($layer:ident, $input:ident, $layers:ident) => {{
+        let (rest, layer) = $layer::from_bytes($input)?;
+        $layers.push(Layer::$layer(layer));
+
+        rest
+    }};
+}
 
 macro_rules! gen_layer_types {
     ($($types:ident,)*) => {
@@ -28,10 +55,67 @@ macro_rules! gen_layer_types {
                 }
             }
 
+            pub fn consume_layer<'a>(rest: (&'a [u8], usize), layers: &mut Vec<Layer>, max_depth: usize) -> Result<(), LayerError> {
+                if max_depth == 0 {
+                    if !rest.0.is_empty() {
+                        layers.push(
+                            Layer::Raw(Raw::new(rest.0, rest.1))
+                        )
+                    }
+
+                    return Ok(())
+                }
+
+                let new_rest = match layers.iter().last().unwrap() {
+                    Layer::Ether(eth) => {
+                        match eth.ether_type {
+                            ether::EtherType::IPv4 => {
+                                do_layer!(Ipv4, rest, layers)
+                            },
+                            _ => {
+                                // eth type not supported
+                                return Layer::consume_layer(rest, layers, 0);
+                            }
+                        }
+
+                    },
+                    Layer::Ipv4(ipv4) => {
+                        match ipv4.protocol {
+                            IpProtocol::TCP => {
+                                do_layer!(Tcp, rest, layers)
+                            },
+                            _ => {
+                                // ip protocol not supported
+                                return Layer::consume_layer(rest, layers, 0);
+                            }
+                        }
+                    }
+                    _ => {
+                        // nothing to consume next, create raw layer with rest
+                        return Layer::consume_layer(rest, layers, 0);
+                    }
+                };
+
+                Layer::consume_layer(new_rest, layers, max_depth-1)
+            }
+
+            pub fn from_bytes_multi_layer(input: &[u8]) -> Result<Vec<Layer>, LayerError> {
+                let mut layers = Vec::new();
+                let mut rest = (input, 0);
+
+                rest = {
+                    do_layer!(Ether, rest, layers)
+                };
+
+                Layer::consume_layer(rest, &mut layers, 10)?;
+
+                Ok(layers)
+            }
+
             pub fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                 let ret = match self {
                     $(
-                        Layer::$types (v) => deku::DekuContainerWrite::to_bytes(v)?
+                        Layer::$types (v) => v.to_bytes()?
                     ),*
                 };
 
@@ -46,21 +130,20 @@ macro_rules! gen_layer_types {
     };
 }
 
-gen_layer_types!(Ether, Ipv4, Ipv6, Tcp,);
+gen_layer_types!(Raw, Ether, Ipv4, Ipv6, Tcp,);
 
 /// Internal macro used to expand layer macros, not for public use
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __builder_impl {
     ($layer_type:ident, $($field_ident:ident : $field:expr),*) => ({
-        use deku::DekuUpdate;
         || -> Result<_, crate::layer::LayerError> {
             let mut layer = crate::layer::$layer_type {
                 $($field_ident : $field,)*
                 ..Default::default()
             };
 
-            layer.update()?;
+            layer.update();
 
             Ok(crate::layer::Layer::$layer_type(layer))
         }()
