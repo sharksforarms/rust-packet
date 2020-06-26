@@ -216,6 +216,14 @@ impl Tcp {
 
         // slice off length from rest
         let bits: usize = length as usize * 8;
+
+        // Check split_at precondition
+        if bits > rest.len() {
+            return Err(DekuError::Parse(
+                "not enough data to read tcp options".to_string(),
+            ));
+        }
+
         let (mut option_rest, rest) = rest.split_at(bits);
 
         let mut tcp_options = Vec::with_capacity(1); // at-least 1
