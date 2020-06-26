@@ -13,6 +13,17 @@ pub use error::LayerError;
 
 use deku::prelude::*;
 
+#[derive(Debug, PartialEq)]
+pub enum ValidationError {
+    Checksum,
+}
+
+pub trait LayerValidate {
+    fn validate(&self) -> Result<Vec<ValidationError>, LayerError> {
+        Ok(Vec::new())
+    }
+}
+
 macro_rules! do_layer {
     ($layer:ident, $input:ident, $layers:ident) => {{
         let (rest, layer) = $layer::from_bytes($input)?;

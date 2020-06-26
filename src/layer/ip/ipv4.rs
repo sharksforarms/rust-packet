@@ -1,4 +1,6 @@
+use super::checksum;
 use super::IpProtocol;
+use crate::layer::{LayerError, LayerValidate, ValidationError};
 use deku::prelude::*;
 use std::net::Ipv4Addr;
 
@@ -42,12 +44,38 @@ pub struct Ipv4 {
     pub offset: u16, // Fragment Offset
     pub ttl: u8,             // Time To Live
     pub protocol: IpProtocol, // Protocol
-    // TODO: reader/writer for checksum validation and updating
+    #[deku(update = "self.calculate_checksum()?")]
     pub checksum: u16, // Header checksum
-    pub src: Ipv4Addr, // Source IP Address
-    pub dst: Ipv4Addr, // Destination IP Address
-                       // options: [u8; ?],    // Options // TODO
-                       // padding: [u8; ?],    // padding // TODO
+    pub src: Ipv4Addr,       // Source IP Address
+    pub dst: Ipv4Addr,       // Destination IP Address
+                             // options: [u8; ?],    // Options // TODO
+                             // padding: [u8; ?],    // padding // TODO
+}
+
+impl Ipv4 {
+    fn calculate_checksum(&self) -> Result<u16, DekuError> {
+        let mut bytes = self.to_bytes()?;
+
+        // Bytes 10, 11 are the checksum. Clear them and re-calculate.
+        bytes[10] = 0x00;
+        bytes[11] = 0x00;
+
+        checksum(&bytes).map_err(|e| DekuError::InvalidParam(e.to_string()))
+    }
+}
+
+impl LayerValidate for Ipv4 {
+    fn validate(&self) -> Result<Vec<ValidationError>, LayerError> {
+        let mut ret = Vec::new();
+
+        // verify checksum
+        let bytes = self.to_bytes()?;
+        if 0x00 != checksum(&bytes)? {
+            ret.push(ValidationError::Checksum)
+        }
+
+        Ok(ret)
+    }
 }
 
 impl Default for Ipv4 {
@@ -63,7 +91,7 @@ impl Default for Ipv4 {
             offset: 0,
             ttl: 0,
             protocol: IpProtocol::HOPOPT,
-            checksum: 0,
+            checksum: 0x1fd,
             src: Ipv4Addr::new(127, 0, 0, 1),
             dst: Ipv4Addr::new(127, 0, 0, 1),
         }
@@ -119,11 +147,36 @@ mod tests {
                 offset: 0,
                 ttl: 0,
                 protocol: IpProtocol::HOPOPT,
-                checksum: 0,
+                checksum: 0x1fd,
                 src: Ipv4Addr::new(127, 0, 0, 1),
                 dst: Ipv4Addr::new(127, 0, 0, 1),
             },
             Ipv4::default()
         );
+    }
+
+    #[test]
+    fn test_ipv4_checksum_update() {
+        let expected_checksum = 0x9010;
+
+        let mut ipv4 =
+            Ipv4::try_from(hex!("450002070f4540008006901091fea0ed41d0e4df").as_ref()).unwrap();
+
+        // Update the checksum
+        ipv4.update().unwrap();
+
+        assert_eq!(expected_checksum, ipv4.checksum);
+    }
+
+    #[rstest(input, expected,
+        case::valid(&hex!("450002070f4540008006901091fea0ed41d0e4df"), vec![]),
+        case::modify_chksum(&hex!("450002070f4540008006FF1091fea0ed41d0e4df"), vec![ValidationError::Checksum]),
+        case::modify_version(&hex!("550002070f4540008006901091fea0ed41d0e4df"), vec![ValidationError::Checksum]),
+    )]
+    fn test_ipv4_checksum_validate(input: &[u8], expected: Vec<ValidationError>) {
+        let ipv4 = Ipv4::try_from(input).unwrap();
+
+        // validate
+        assert_eq!(expected, ipv4.validate().unwrap());
     }
 }

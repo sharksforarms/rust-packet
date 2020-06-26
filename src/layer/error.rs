@@ -2,6 +2,7 @@
 pub enum LayerError {
     Parse(String),
     Unexpected(String),
+    Checksum(String),
     DekuError(String),
 }
 
@@ -23,6 +24,7 @@ impl core::fmt::Display for LayerError {
             LayerError::Parse(ref err) => write!(f, "Parse error: {}", err),
             LayerError::Unexpected(ref err) => write!(f, "Unexpected error: {}", err),
             LayerError::DekuError(ref err) => write!(f, "Deku Error: {}", err),
+            LayerError::Checksum(ref err) => write!(f, "Checksum Error: {}", err),
         }
     }
 }
