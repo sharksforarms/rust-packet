@@ -29,9 +29,18 @@ pub enum TcpOption {
     SAckOK { length: u8 },
     #[deku(id = "0x05")]
     SAck {
-        #[deku(update = "(((value.len() * 2) * 4) + 2)")]
+        // #[deku(update = "(((value.len() * 2) * 4) + 2)")]
+        #[deku(update = "{use std::convert::TryFrom; u8::try_from(
+            value.len()
+            .checked_mul(8)
+            .and_then(|v| v.checked_add(2))
+            .ok_or_else(|| DekuError::Parse(\"overflow when parsing SAckData length\".to_string()))?
+        )?}")]
         length: u8,
-        #[deku(count = "(((length - 2) / 4) / 2)")]
+        // #[deku(count = "(((length - 2) / 4) / 2)")]
+        #[deku(
+            count = "length.checked_sub(2).and_then(|v| v.checked_div(8)).ok_or_else(|| DekuError::Parse(\"overflow when parsing SAckData vec\".to_string()))?"
+        )]
         value: Vec<SAckData>,
     },
     #[deku(id = "0x08")]
