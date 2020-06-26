@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, PartialEq, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, DekuWrite)]
 pub struct Raw {
     pub data: Vec<u8>,
     #[deku(skip)]
