@@ -1,4 +1,7 @@
+use super::{Layer, LayerError};
+use crate::layer::{ip::checksum, Ipv4, Ipv6};
 use deku::prelude::*;
+use std::convert::TryFrom;
 
 mod options;
 pub use options::{SAckData, TcpOption, TimestampData};
@@ -103,6 +106,82 @@ pub struct Tcp {
     pub options: Vec<TcpOption>,
 }
 
+impl Tcp {
+    pub fn update_checksum_ipv4(&mut self, ipv4: &Ipv4, data: &[Layer]) -> Result<(), LayerError> {
+        let mut data_buf = Vec::new();
+        for layer in data {
+            data_buf.extend(layer.to_bytes()?)
+        }
+
+        let mut tcp = self.to_bytes()?;
+        // Bytes 16, 17 are the checksum. Clear them for calculation.
+        tcp[16] = 0x00;
+        tcp[17] = 0x00;
+
+        let mut buf = Vec::with_capacity(12 + tcp.len() + data_buf.len());
+
+        // Write pseudo header
+        buf.extend(ipv4.src.write(false, None)?.into_vec());
+        buf.extend(ipv4.dst.write(false, None)?.into_vec());
+        buf.push(0);
+        buf.extend(ipv4.protocol.write(false, None)?.into_vec());
+        buf.extend(
+            (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
+                .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
+                .write(false, None)?
+                .into_vec(),
+        );
+
+        // Write tcp header
+        buf.extend(tcp);
+
+        // Write remaining data
+        buf.extend(data_buf);
+
+        self.checksum = checksum(&buf)?;
+
+        Ok(())
+    }
+
+    pub fn update_checksum_ipv6(&mut self, ipv6: &Ipv6, data: &[Layer]) -> Result<(), LayerError> {
+        let mut data_buf = Vec::new();
+        for layer in data {
+            data_buf.extend(layer.to_bytes()?)
+        }
+
+        let mut tcp = self.to_bytes()?;
+        // Bytes 16, 17 are the checksum. Clear them for calculation.
+        tcp[16] = 0x00;
+        tcp[17] = 0x00;
+
+        let mut buf = Vec::with_capacity(40 + tcp.len() + data_buf.len());
+
+        // Write pseudo header
+        buf.extend(ipv6.src.write(false, None)?.into_vec());
+        buf.extend(ipv6.dst.write(false, None)?.into_vec());
+        buf.extend(
+            (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
+                .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
+                .write(false, None)?
+                .into_vec(),
+        );
+        buf.push(0);
+        buf.push(0);
+        buf.push(0);
+        buf.extend(ipv6.next_header.write(false, None)?.into_vec());
+
+        // Write tcp header
+        buf.extend(tcp);
+
+        // Write remaining data
+        buf.extend(data_buf);
+
+        self.checksum = checksum(&buf)?;
+
+        Ok(())
+    }
+}
+
 impl Default for Tcp {
     fn default() -> Self {
         Tcp {
@@ -156,6 +235,7 @@ impl Tcp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::layer::Raw;
     use hex_literal::hex;
     use rstest::*;
     use std::convert::TryFrom;
@@ -236,5 +316,44 @@ mod tests {
             },
             Tcp::default()
         )
+    }
+
+    #[test]
+    fn test_tcp_checksum_update_v4() {
+        let expected_checksum = 0xa958;
+
+        let ipv4 =
+            Ipv4::try_from(hex!("450002070f4540008006901091fea0ed41d0e4df").as_ref()).unwrap();
+
+        let mut tcp =
+            Tcp::try_from(hex!("0d2c005038affe14114c618c501825bc AAAA 0000").as_ref()).unwrap();
+
+        let raw = Raw::new(&hex!("474554202f646f776e6c6f61642e68746d6c20485454502f312e310d0a486f73743a207777772e657468657265616c2e636f6d0d0a557365722d4167656e743a204d6f7a696c6c612f352e30202857696e646f77733b20553b2057696e646f7773204e5420352e313b20656e2d55533b2072763a312e3629204765636b6f2f32303034303131330d0a4163636570743a20746578742f786d6c2c6170706c69636174696f6e2f786d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c746578742f68746d6c3b713d302e392c746578742f706c61696e3b713d302e382c696d6167652f706e672c696d6167652f6a7065672c696d6167652f6769663b713d302e322c2a2f2a3b713d302e310d0a4163636570742d4c616e67756167653a20656e2d75732c656e3b713d302e350d0a4163636570742d456e636f64696e673a20677a69702c6465666c6174650d0a4163636570742d436861727365743a2049534f2d383835392d312c7574662d383b713d302e372c2a3b713d302e370d0a4b6565702d416c6976653a203330300d0a436f6e6e656374696f6e3a206b6565702d616c6976650d0a526566657265723a20687474703a2f2f7777772e657468657265616c2e636f6d2f646576656c6f706d656e742e68746d6c0d0a0d0a"), 0);
+
+        tcp.update_checksum_ipv4(&ipv4, &[Layer::Raw(raw)]).unwrap();
+
+        assert_eq!(expected_checksum, tcp.checksum);
+    }
+
+    #[test]
+    fn test_tcp_checksum_update_v6() {
+        let expected_checksum = 0x0e91;
+
+        let ipv6 = Ipv6::try_from(
+            hex!(
+                "6000000000240680200251834383000000000000518343832001063809020001020102fffee27596"
+            )
+            .as_ref(),
+        )
+        .unwrap();
+
+        let mut tcp =
+            Tcp::try_from(hex!("04020015626bf2f8e537a573501842640e910000").as_ref()).unwrap();
+
+        let raw = Raw::new(&hex!("5553455220616e6f6e796d6f75730d0a"), 0);
+
+        tcp.update_checksum_ipv6(&ipv6, &[Layer::Raw(raw)]).unwrap();
+
+        assert_eq!(expected_checksum, tcp.checksum);
     }
 }

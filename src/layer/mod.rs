@@ -35,7 +35,7 @@ macro_rules! do_layer {
 
 macro_rules! gen_layer_types {
     ($($types:ident,)*) => {
-        #[derive(Debug, PartialEq)]
+        #[derive(Debug, PartialEq, Clone)]
         pub enum Layer {
             $($types ( $types )),*
         }
@@ -119,6 +119,16 @@ macro_rules! gen_layer_types {
                 };
 
                 Ok(ret)
+            }
+
+            pub fn update(&mut self) -> Result<(), LayerError> {
+                match self {
+                    $(
+                        Layer::$types (v) => v.update()?
+                    ),*
+                };
+
+                Ok(())
             }
         }
 

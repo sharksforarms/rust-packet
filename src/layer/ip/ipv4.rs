@@ -54,13 +54,13 @@ pub struct Ipv4 {
 
 impl Ipv4 {
     fn calculate_checksum(&self) -> Result<u16, DekuError> {
-        let mut bytes = self.to_bytes()?;
+        let mut ipv4 = self.to_bytes()?;
 
         // Bytes 10, 11 are the checksum. Clear them and re-calculate.
-        bytes[10] = 0x00;
-        bytes[11] = 0x00;
+        ipv4[10] = 0x00;
+        ipv4[11] = 0x00;
 
-        checksum(&bytes).map_err(|e| DekuError::InvalidParam(e.to_string()))
+        checksum(&ipv4).map_err(|e| DekuError::InvalidParam(e.to_string()))
     }
 }
 
@@ -160,7 +160,7 @@ mod tests {
         let expected_checksum = 0x9010;
 
         let mut ipv4 =
-            Ipv4::try_from(hex!("450002070f4540008006901091fea0ed41d0e4df").as_ref()).unwrap();
+            Ipv4::try_from(hex!("450002070f4540008006 AABB 91fea0ed41d0e4df").as_ref()).unwrap();
 
         // Update the checksum
         ipv4.update().unwrap();
