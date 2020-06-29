@@ -30,6 +30,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         let input = hex!("0d2c005038affe14114c618c501825bca9580000FFFF");
         b.iter(|| Tcp::from_bytes(black_box((&input, 0))))
     });
+
+    c.bench_function("udp_from_bytes", |b| {
+        let input = hex!("b4d100a1004815b3FFFF");
+        b.iter(|| Udp::from_bytes(black_box((&input, 0))))
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);

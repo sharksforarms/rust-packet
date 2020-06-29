@@ -2,11 +2,13 @@ pub mod ether;
 pub mod ip;
 pub mod raw;
 pub mod tcp;
+pub mod udp;
 
 pub use ether::Ether;
 pub use ip::{IpProtocol, Ipv4, Ipv6};
 pub use raw::Raw;
 pub use tcp::Tcp;
+pub use udp::Udp;
 
 pub mod error;
 pub use error::LayerError;
@@ -67,6 +69,9 @@ macro_rules! gen_layer_types {
                                 ether::EtherType::IPv4 => {
                                     do_layer!(Ipv4, rest, layers)
                                 },
+                                ether::EtherType::IPv6 => {
+                                    do_layer!(Ipv6, rest, layers)
+                                },
                                 _ => {
                                     // eth type not supported
                                     return Layer::consume_layer(rest, layers, 0);
@@ -78,6 +83,23 @@ macro_rules! gen_layer_types {
                             match ipv4.protocol {
                                 IpProtocol::TCP => {
                                     do_layer!(Tcp, rest, layers)
+                                },
+                                IpProtocol::UDP => {
+                                    do_layer!(Udp, rest, layers)
+                                },
+                                _ => {
+                                    // ip protocol not supported
+                                    return Layer::consume_layer(rest, layers, 0);
+                                }
+                            }
+                        },
+                        Layer::Ipv6(ipv6) => {
+                            match ipv6.next_header {
+                                IpProtocol::TCP => {
+                                    do_layer!(Tcp, rest, layers)
+                                },
+                                IpProtocol::UDP => {
+                                    do_layer!(Udp, rest, layers)
                                 },
                                 _ => {
                                     // ip protocol not supported
@@ -139,7 +161,7 @@ macro_rules! gen_layer_types {
     };
 }
 
-gen_layer_types!(Raw, Ether, Ipv4, Ipv6, Tcp,);
+gen_layer_types!(Raw, Ether, Ipv4, Ipv6, Tcp, Udp,);
 
 /// Internal macro used to expand layer macros, not for public use
 #[doc(hidden)]
@@ -191,5 +213,12 @@ macro_rules! ipv6 {
 macro_rules! tcp {
     ($($field_ident:ident : $field:expr),* $(,)?)=> (
         $crate::__builder_impl!(Tcp, $($field_ident : $field),*)
+    );
+}
+
+#[macro_export]
+macro_rules! udp {
+    ($($field_ident:ident : $field:expr),* $(,)?)=> (
+        $crate::__builder_impl!(Udp, $($field_ident : $field),*)
     );
 }
