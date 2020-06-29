@@ -298,6 +298,11 @@ mod tests {
             &hex!("0d2c005038affe14114c618c101825bca9580000"),
             Tcp::default(),
         ),
+        #[should_panic(expected = "Parse(\"not enough data to read tcp options\")")]
+        case(
+            &hex!("ffffffffffffffffffffffffffffffffffffffff"),
+            Tcp::default(),
+        )
     )]
     fn test_tcp(input: &[u8], expected: Tcp) {
         let ret_read = Tcp::try_from(input).unwrap();
