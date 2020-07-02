@@ -1,3 +1,7 @@
+/*!
+Ethernet layer
+*/
+
 mod ethertype;
 mod macaddress;
 

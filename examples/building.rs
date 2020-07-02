@@ -15,7 +15,8 @@ fn main() {
         raw! {
             data: b"hello world".to_vec()
         }?,
-    }.unwrap();
+    }
+    .unwrap();
 
     let _raw_bytes = my_pkt.to_bytes();
 }

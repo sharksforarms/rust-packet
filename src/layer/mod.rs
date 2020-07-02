@@ -1,3 +1,9 @@
+/*!
+Collection of network layer types
+
+A layer is a type representing a network header found in a packet, such as Ether, Ipv4, etc.
+*/
+
 pub mod error;
 pub mod ether;
 pub mod ip;
@@ -7,12 +13,13 @@ pub mod udp;
 
 pub use error::LayerError;
 pub use ether::Ether;
-pub use ip::{IpProtocol, Ipv4, Ipv6};
+pub use ip::{Ipv4, Ipv6};
 pub use raw::Raw;
 pub use tcp::Tcp;
 pub use udp::Udp;
 
 use deku::prelude::*;
+use ip::IpProtocol;
 
 #[derive(Debug, PartialEq)]
 pub enum ValidationError {
@@ -36,12 +43,14 @@ macro_rules! do_layer {
 
 macro_rules! gen_layer_types {
     ($($types:ident,)*) => {
+        /// Layer wrapper type
         #[derive(Debug, PartialEq, Clone)]
         pub enum Layer {
             $($types ( $types )),*
         }
 
         impl Layer {
+            /// Returns the layer type of the layer
             pub fn layer_type(&self) -> LayerType {
                 match self {
                     $(
@@ -50,6 +59,7 @@ macro_rules! gen_layer_types {
                 }
             }
 
+            // Recursive function to consume layers from a stream of bytes
             fn consume_layer<'a>(rest: (&'a [u8], usize), layers: &mut Vec<Layer>, max_depth: usize) -> Result<(), LayerError> {
                 if max_depth == 0 {
                     if !rest.0.is_empty() {
@@ -122,6 +132,8 @@ macro_rules! gen_layer_types {
                 Layer::consume_layer(new_rest, layers, max_depth-1)
             }
 
+            /// Returns a vector of `Layer` consumed from the byte stream
+            /// This will consume the next-layer in accordance to the protocol
             pub fn from_bytes_multi_layer(input: &[u8], max_depth: usize) -> Result<Vec<Layer>, LayerError> {
                 let mut layers = Vec::new();
                 let mut rest = (input, 0);
@@ -135,6 +147,7 @@ macro_rules! gen_layer_types {
                 Ok(layers)
             }
 
+            /// Writes the layer
             pub fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                 let ret = match self {
                     $(
@@ -145,6 +158,7 @@ macro_rules! gen_layer_types {
                 Ok(ret)
             }
 
+            /// Updates the layer
             pub fn update(&mut self) -> Result<(), LayerError> {
                 match self {
                     $(
@@ -156,6 +170,7 @@ macro_rules! gen_layer_types {
             }
         }
 
+        /// Type of layer
         #[derive(Debug, PartialEq)]
         pub enum LayerType {
             $($types,)*
@@ -186,6 +201,24 @@ macro_rules! __builder_impl {
 
 // # LAYER: macro to build layer
 
+/**
+Create a [Raw](layer/raw/struct.Raw.html) layer
+
+Fields which are not provided are defaulted.
+
+Returns `Result<Layer::Raw(Raw), LayerError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+# fn main() {
+let layer = raw! {
+    data: b"hello world".to_vec()
+}.unwrap();
+# }
+```
+*/
 #[macro_export]
 macro_rules! raw {
     ($($field_ident:ident : $field:expr),* $(,)?) => (
@@ -193,6 +226,24 @@ macro_rules! raw {
     );
 }
 
+/**
+Create a [Ether](layer/ether/struct.Ether.html) layer
+
+Fields which are not provided are defaulted.
+
+Returns `Result<Layer::Ether(Ether), LayerError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+# fn main() {
+let layer = ether! {
+    src: "de:ad:be:ef:c0:fe".parse().unwrap()
+}.unwrap();
+# }
+```
+*/
 #[macro_export]
 macro_rules! ether {
     ($($field_ident:ident : $field:expr),* $(,)?) => (
@@ -200,6 +251,24 @@ macro_rules! ether {
     );
 }
 
+/**
+Create a [Ipv4](layer/ip/ipv4/struct.Ipv4.html) layer
+
+Fields which are not provided are defaulted.
+
+Returns `Result<Layer::Ipv4(Ipv4), LayerError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+# fn main() {
+let layer = ipv4! {
+    src: "127.0.0.1".parse().unwrap()
+}.unwrap();
+# }
+```
+*/
 #[macro_export]
 macro_rules! ipv4 {
     ($($field_ident:ident : $field:expr),* $(,)?) => (
@@ -207,6 +276,36 @@ macro_rules! ipv4 {
     );
 }
 
+/**
+Create a [Ipv6](layer/ip/ipv6/struct.Ipv6.html) layer
+
+Fields which are not provided are defaulted.
+
+Returns `Result<Layer::Ipv6(Ipv6), LayerError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+# fn main() {
+let pkt = pkt! {
+    ether! {
+        dst: "de:ad:be:ef:c0:fe".parse()?
+    }?,
+    ipv4! {
+        src: "127.0.0.1".parse()?,
+        dst: "127.0.0.2".parse()?,
+    }?,
+    udp! {
+        dport: 1337
+    }?,
+    raw! {
+        data: b"hello world!".to_vec()
+    }?,
+}.unwrap();
+# }
+```
+*/
 #[macro_export]
 macro_rules! ipv6 {
     ($($field_ident:ident : $field:expr),* $(,)?) => (
@@ -214,6 +313,24 @@ macro_rules! ipv6 {
     );
 }
 
+/**
+Create a [Tcp](layer/tcp/struct.Tcp.html) layer
+
+Fields which are not provided are defaulted.
+
+Returns `Result<Layer::Tcp(Tcp), LayerError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+# fn main() {
+let layer = tcp! {
+    dport: 8080
+}.unwrap();
+# }
+```
+*/
 #[macro_export]
 macro_rules! tcp {
     ($($field_ident:ident : $field:expr),* $(,)?)=> (
@@ -221,6 +338,24 @@ macro_rules! tcp {
     );
 }
 
+/**
+Create a [Udp](layer/udp/struct.Udp.html) layer
+
+Fields which are not provided are defaulted.
+
+Returns `Result<Layer::Udp(Udp), LayerError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+# fn main() {
+let layer = udp! {
+    dport: 8080
+}.unwrap();
+# }
+```
+*/
 #[macro_export]
 macro_rules! udp {
     ($($field_ident:ident : $field:expr),* $(,)?)=> (
