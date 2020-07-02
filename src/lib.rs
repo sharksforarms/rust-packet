@@ -7,7 +7,6 @@ See [examples](https://github.com/sharksforarms/rust-packet/tree/master/examples
 
 ```rust
 use rust_packet::prelude::*;
-use rust_packet::*;
 
 // Build a packet!
 let pkt: Packet = pkt! {
