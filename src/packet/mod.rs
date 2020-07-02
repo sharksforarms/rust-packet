@@ -3,6 +3,8 @@ pub use error::PacketError;
 
 use crate::layer::{Layer, LayerType};
 
+const MAX_LAYERS: usize = 10;
+
 #[derive(Debug)]
 pub struct Packet {
     layers: Vec<Layer>,
@@ -14,7 +16,7 @@ impl Packet {
     }
 
     pub fn from_bytes(input: &[u8]) -> Result<Packet, PacketError> {
-        let layers = Layer::from_bytes_multi_layer(input)?;
+        let layers = Layer::from_bytes_multi_layer(input, MAX_LAYERS)?;
         Ok(Packet::new(layers))
     }
 
@@ -53,7 +55,6 @@ impl Packet {
                     layer.update()?;
 
                     // Update next-layers which depend on current layer
-                    #[allow(clippy::single_match)]
                     match next_layer {
                         Layer::Tcp(tcp) => match layer {
                             Layer::Ipv4(ipv4) => tcp.update_checksum_ipv4(ipv4, &data)?,
@@ -75,7 +76,7 @@ impl Packet {
     }
 }
 
-macro_rules! impl_packet_layer {
+macro_rules! impl_layer_packet_funcs {
     ($layer:ident, $func:ident, $func_mut:ident) => {
         impl Packet {
             pub fn $func(&self) -> Option<&crate::layer::$layer> {
@@ -107,12 +108,13 @@ macro_rules! impl_packet_layer {
     };
 }
 
-impl_packet_layer!(Raw, raw, raw_mut);
-impl_packet_layer!(Ether, ether, ether_mut);
-impl_packet_layer!(Ipv4, ipv4, ipv4_mut);
-impl_packet_layer!(Ipv6, ipv6, ipv6_mut);
-impl_packet_layer!(Tcp, tcp, tcp_mut);
-impl_packet_layer!(Udp, udp, udp_mut);
+// # LAYER: Function to access layer from packet
+impl_layer_packet_funcs!(Raw, raw, raw_mut);
+impl_layer_packet_funcs!(Ether, ether, ether_mut);
+impl_layer_packet_funcs!(Ipv4, ipv4, ipv4_mut);
+impl_layer_packet_funcs!(Ipv6, ipv6, ipv6_mut);
+impl_layer_packet_funcs!(Tcp, tcp, tcp_mut);
+impl_layer_packet_funcs!(Udp, udp, udp_mut);
 
 impl std::ops::Index<LayerType> for Packet {
     type Output = Layer;
@@ -208,7 +210,13 @@ mod tests {
             pkt.layers[2]
         );
 
-        assert_eq!(Layer::Raw(Raw::new(b"hello world", 0)), pkt.layers[3]);
+        assert_eq!(
+            Layer::Raw(Raw {
+                data: b"hello world".to_vec(),
+                bit_offset: 0,
+            }),
+            pkt.layers[3]
+        );
     }
 
     #[test]

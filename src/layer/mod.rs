@@ -1,17 +1,16 @@
+pub mod error;
 pub mod ether;
 pub mod ip;
 pub mod raw;
 pub mod tcp;
 pub mod udp;
 
+pub use error::LayerError;
 pub use ether::Ether;
 pub use ip::{IpProtocol, Ipv4, Ipv6};
 pub use raw::Raw;
 pub use tcp::Tcp;
 pub use udp::Udp;
-
-pub mod error;
-pub use error::LayerError;
 
 use deku::prelude::*;
 
@@ -54,14 +53,17 @@ macro_rules! gen_layer_types {
             fn consume_layer<'a>(rest: (&'a [u8], usize), layers: &mut Vec<Layer>, max_depth: usize) -> Result<(), LayerError> {
                 if max_depth == 0 {
                     if !rest.0.is_empty() {
-                        layers.push(
-                            Layer::Raw(Raw::new(rest.0, rest.1))
-                        )
+                        let rest = {
+                            do_layer!(Raw, rest, layers)
+                        };
+
+                        assert!(rest.0.is_empty(), "dev error: rest should always be empty here");
                     }
 
                     return Ok(())
                 }
 
+                // # Layer: How the layer is consumed
                 let new_rest = if let Some(previous_layer) = layers.iter().last() {
                     match previous_layer {
                         Layer::Ether(eth) => {
@@ -114,13 +116,13 @@ macro_rules! gen_layer_types {
                     }
 
                 } else {
-                    unreachable!()
+                    unreachable!("dev error: no previous layer available from caller")
                 };
 
                 Layer::consume_layer(new_rest, layers, max_depth-1)
             }
 
-            pub fn from_bytes_multi_layer(input: &[u8]) -> Result<Vec<Layer>, LayerError> {
+            pub fn from_bytes_multi_layer(input: &[u8], max_depth: usize) -> Result<Vec<Layer>, LayerError> {
                 let mut layers = Vec::new();
                 let mut rest = (input, 0);
 
@@ -128,7 +130,7 @@ macro_rules! gen_layer_types {
                     do_layer!(Ether, rest, layers)
                 };
 
-                Layer::consume_layer(rest, &mut layers, 10)?;
+                Layer::consume_layer(rest, &mut layers, max_depth)?;
 
                 Ok(layers)
             }
@@ -161,6 +163,7 @@ macro_rules! gen_layer_types {
     };
 }
 
+// # LAYER: Add type to Layer enum
 gen_layer_types!(Raw, Ether, Ipv4, Ipv6, Tcp, Udp,);
 
 /// Internal macro used to expand layer macros, not for public use
@@ -180,6 +183,8 @@ macro_rules! __builder_impl {
         }()
     });
 }
+
+// # LAYER: macro to build layer
 
 #[macro_export]
 macro_rules! raw {
