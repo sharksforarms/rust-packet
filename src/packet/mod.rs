@@ -140,7 +140,9 @@ impl std::ops::IndexMut<LayerType> for Packet {
 macro_rules! pkt {
     ($($layers:expr),+ $(,)?) => ({
         || -> Result<_, PacketError> {
-            Ok(Packet::new(vec![$($layers),*]))
+            let mut pkt = Packet::new(vec![$($layers),*]);
+            pkt.update()?;
+            Ok(pkt)
         }()
     });
 }
