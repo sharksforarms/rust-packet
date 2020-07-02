@@ -159,7 +159,6 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let pkt: Packet = pkt! {
     ether! {
         dst: "de:ad:be:ef:c0:fe".parse()?
@@ -175,7 +174,6 @@ let pkt: Packet = pkt! {
         data: b"hello world!".to_vec()
     }?,
 }.unwrap();
-# }
 ```
 */
 #[macro_export]

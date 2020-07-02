@@ -7,8 +7,8 @@ See [examples](https://github.com/sharksforarms/rust-packet/tree/master/examples
 
 ```rust
 use rust_packet::prelude::*;
+use rust_packet::*;
 
-# fn main() {
 // Build a packet!
 let pkt: Packet = pkt! {
     ether! {
@@ -40,11 +40,9 @@ pkt.update().unwrap();
 
 // Write the packet!
 let raw_bytes = pkt.to_bytes().unwrap();
-# }
 ```
 */
 
-// #[allow(clippy::needless_doctest_main)]
 pub mod layer;
 pub mod packet;
 pub mod prelude;

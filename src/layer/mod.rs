@@ -186,15 +186,15 @@ gen_layer_types!(Raw, Ether, Ipv4, Ipv6, Tcp, Udp,);
 #[macro_export]
 macro_rules! __builder_impl {
     ($layer_type:ident, $($field_ident:ident : $field:expr),*) => ({
-        || -> Result<_, crate::layer::LayerError> {
-            let mut layer = crate::layer::$layer_type {
+        || -> Result<_, $crate::layer::LayerError> {
+            let mut layer = $crate::layer::$layer_type {
                 $($field_ident : $field,)*
                 ..Default::default()
             };
 
             layer.update()?;
 
-            Ok(crate::layer::Layer::$layer_type(layer))
+            Ok($crate::layer::Layer::$layer_type(layer))
         }()
     });
 }
@@ -212,11 +212,9 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let layer = raw! {
     data: b"hello world".to_vec()
 }.unwrap();
-# }
 ```
 */
 #[macro_export]
@@ -237,11 +235,9 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let layer = ether! {
     src: "de:ad:be:ef:c0:fe".parse().unwrap()
 }.unwrap();
-# }
 ```
 */
 #[macro_export]
@@ -262,11 +258,9 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let layer = ipv4! {
     src: "127.0.0.1".parse().unwrap()
 }.unwrap();
-# }
 ```
 */
 #[macro_export]
@@ -287,7 +281,6 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let pkt = pkt! {
     ether! {
         dst: "de:ad:be:ef:c0:fe".parse()?
@@ -303,7 +296,6 @@ let pkt = pkt! {
         data: b"hello world!".to_vec()
     }?,
 }.unwrap();
-# }
 ```
 */
 #[macro_export]
@@ -324,11 +316,9 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let layer = tcp! {
     dport: 8080
 }.unwrap();
-# }
 ```
 */
 #[macro_export]
@@ -349,11 +339,9 @@ Example:
 
 ```rust
 # use rust_packet::prelude::*;
-# fn main() {
 let layer = udp! {
     dport: 8080
 }.unwrap();
-# }
 ```
 */
 #[macro_export]
