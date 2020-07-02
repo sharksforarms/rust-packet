@@ -16,7 +16,7 @@ fn main() {
     // Build a packet!
     let pkt: Packet = pkt! {
         ether! {
-            dst: "de:ad:be:ef:co:fe".parse()?
+            dst: "de:ad:be:ef:c0:fe".parse()?
         }?,
         ipv4! {
             src: "127.0.0.1".parse()?,
@@ -31,19 +31,19 @@ fn main() {
     }.unwrap();
 
     // Read a packet!
-    let input: Vec<u8> = my_pkt.to_bytes();
-    let mut pkt = Packet::from_bytes(input.as_ref());
+    let input: Vec<u8> = pkt.to_bytes().unwrap();
+    let mut pkt = Packet::from_bytes(input.as_ref()).unwrap();
 
     // Change the packet!
     if let Some(ipv4) = pkt.ipv4_mut() {
-        pkt.dst = "127.0.0.3".parse().unwrap()
+        ipv4.dst = "127.0.0.3".parse().unwrap()
     }
 
     // Update the packet! (This will update the various checksums (Ipv4, TCP, UDP))
     pkt.update().unwrap();
 
     // Write the packet!
-    let raw_bytes = pkt.to_bytes();
+    let raw_bytes = pkt.to_bytes().unwrap();
 }
 ```
 
