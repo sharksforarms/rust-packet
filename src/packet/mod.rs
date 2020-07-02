@@ -90,45 +90,45 @@ impl Packet {
 
 macro_rules! impl_layer_packet_funcs {
     ($layer:ident, $func:ident, $func_mut:ident) => {
-        impl Packet {
-            /// Returns the first $layer layer as a reference
-            pub fn $func(&self) -> Option<&crate::layer::$layer> {
-                let layer = self
-                    .layers
-                    .iter()
-                    .find(|v| v.layer_type() == LayerType::$layer);
+        /// Returns the first layer as a reference
+        pub fn $func(&self) -> Option<&crate::layer::$layer> {
+            let layer = self
+                .layers
+                .iter()
+                .find(|v| v.layer_type() == LayerType::$layer);
 
-                if let Some(Layer::$layer(layer)) = layer {
-                    Some(layer)
-                } else {
-                    None
-                }
+            if let Some(Layer::$layer(layer)) = layer {
+                Some(layer)
+            } else {
+                None
             }
+        }
 
-            /// Returns the first $layer layer as a mutable reference
-            pub fn $func_mut(&mut self) -> Option<&mut crate::layer::$layer> {
-                let layer = self
-                    .layers
-                    .iter_mut()
-                    .find(|v| v.layer_type() == LayerType::$layer);
+        /// Returns the first layer as a mutable reference
+        pub fn $func_mut(&mut self) -> Option<&mut crate::layer::$layer> {
+            let layer = self
+                .layers
+                .iter_mut()
+                .find(|v| v.layer_type() == LayerType::$layer);
 
-                if let Some(Layer::$layer(layer)) = layer {
-                    Some(layer)
-                } else {
-                    None
-                }
+            if let Some(Layer::$layer(layer)) = layer {
+                Some(layer)
+            } else {
+                None
             }
         }
     };
 }
 
 // # LAYER: Function to access layer from packet
-impl_layer_packet_funcs!(Raw, raw, raw_mut);
-impl_layer_packet_funcs!(Ether, ether, ether_mut);
-impl_layer_packet_funcs!(Ipv4, ipv4, ipv4_mut);
-impl_layer_packet_funcs!(Ipv6, ipv6, ipv6_mut);
-impl_layer_packet_funcs!(Tcp, tcp, tcp_mut);
-impl_layer_packet_funcs!(Udp, udp, udp_mut);
+impl Packet {
+    impl_layer_packet_funcs!(Raw, raw, raw_mut);
+    impl_layer_packet_funcs!(Ether, ether, ether_mut);
+    impl_layer_packet_funcs!(Ipv4, ipv4, ipv4_mut);
+    impl_layer_packet_funcs!(Ipv6, ipv6, ipv6_mut);
+    impl_layer_packet_funcs!(Tcp, tcp, tcp_mut);
+    impl_layer_packet_funcs!(Udp, udp, udp_mut);
+}
 
 impl std::ops::Index<LayerType> for Packet {
     type Output = Layer;
