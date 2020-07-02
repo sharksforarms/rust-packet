@@ -6,6 +6,7 @@ static A: AllocCounterSystem = AllocCounterSystem;
 
 macro_rules! gen_count_alloc {
     ($test_name:ident, $layer:ident, $header:expr, $expected_from_bytes:expr, $expected_to_bytes:expr) => {
+        #[ignore]
         #[test]
         fn $test_name() {
             let input_read = $header;
