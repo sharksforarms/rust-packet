@@ -7,6 +7,8 @@ A network packet parser and builder. This crate is meant to provide similar func
 
 # Example
 
+See [examples](https://github.com/sharksforarms/rust-packet/tree/master/examples) for more.
+
 ```rust
 use rust_packet::prelude::*;
 
@@ -44,8 +46,6 @@ fn main() {
     let raw_bytes = pkt.to_bytes();
 }
 ```
-
-See [examples](https://github.com/sharksforarms/rust-packet/tree/master/examples)!
 
 # Contributing a new layer
 
