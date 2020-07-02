@@ -90,7 +90,7 @@ impl Packet {
 
 macro_rules! impl_layer_packet_funcs {
     ($layer:ident, $func:ident, $func_mut:ident) => {
-        /// Returns the first $layer layer as a reference
+        /// Returns the first layer as a reference
         pub fn $func(&self) -> Option<&crate::layer::$layer> {
             let layer = self
                 .layers
@@ -104,7 +104,7 @@ macro_rules! impl_layer_packet_funcs {
             }
         }
 
-        /// Returns the first $layer layer as a mutable reference
+        /// Returns the first layer as a mutable reference
         pub fn $func_mut(&mut self) -> Option<&mut crate::layer::$layer> {
             let layer = self
                 .layers
