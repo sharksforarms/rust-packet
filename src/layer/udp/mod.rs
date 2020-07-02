@@ -161,10 +161,10 @@ mod tests {
 
         let mut udp = Udp::try_from(hex!("ff02ff350029 AAAA").as_ref()).unwrap();
 
-        let raw = Raw::new(
-            &hex!("002b0100000100000000000002757304706f6f6c036e7470036f72670000010001"),
-            0,
-        );
+        let raw = Raw::try_from(
+            hex!("002b0100000100000000000002757304706f6f6c036e7470036f72670000010001").as_ref(),
+        )
+        .unwrap();
 
         udp.update_checksum_ipv4(&ipv4, &[Layer::Raw(raw)]).unwrap();
 
@@ -185,7 +185,7 @@ mod tests {
 
         let mut udp = Udp::try_from(hex!("ff5000a1003f AAAA").as_ref()).unwrap();
 
-        let raw = Raw::new(&hex!("303502010104146e35724144316967333134497166696f59425777a11a020455e8831e020100020100300c300a06062b060102010b0500"), 0);
+        let raw = Raw::try_from(hex!("303502010104146e35724144316967333134497166696f59425777a11a020455e8831e020100020100300c300a06062b060102010b0500").as_ref()).unwrap();
 
         udp.update_checksum_ipv6(&ipv6, &[Layer::Raw(raw)]).unwrap();
 
