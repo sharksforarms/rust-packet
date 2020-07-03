@@ -1,5 +1,7 @@
 use super::IpProtocol;
+use crate::layer::{Layer, LayerError};
 use deku::prelude::*;
+use std::convert::TryFrom;
 use std::net::Ipv6Addr;
 
 /**
@@ -47,6 +49,19 @@ pub struct Ipv6 {
     pub hop_limit: u8,           // Hop Limit
     pub src: Ipv6Addr,           // Source IP Address
     pub dst: Ipv6Addr,           // Destination IP Address
+}
+
+impl Ipv6 {
+    pub fn update_length(&mut self, data: &[Layer]) -> Result<(), LayerError> {
+        let mut data_buf = Vec::new();
+        for layer in data {
+            data_buf.extend(layer.to_bytes()?)
+        }
+
+        self.length = u16::try_from(data_buf.len())?;
+
+        Ok(())
+    }
 }
 
 impl Default for Ipv6 {
