@@ -1,7 +1,8 @@
 use super::checksum;
 use super::IpProtocol;
-use crate::layer::{LayerError, LayerValidate, ValidationError};
+use crate::layer::{Layer, LayerError, LayerValidate, ValidationError};
 use deku::prelude::*;
+use std::convert::TryFrom;
 use std::net::Ipv4Addr;
 
 /**
@@ -44,7 +45,7 @@ pub struct Ipv4 {
     pub offset: u16, // Fragment Offset
     pub ttl: u8,             // Time To Live
     pub protocol: IpProtocol, // Protocol
-    #[deku(update = "self.calculate_checksum()?")]
+    #[deku(update = "self.update_checksum()?")]
     pub checksum: u16, // Header checksum
     pub src: Ipv4Addr,       // Source IP Address
     pub dst: Ipv4Addr,       // Destination IP Address
@@ -53,7 +54,7 @@ pub struct Ipv4 {
 }
 
 impl Ipv4 {
-    fn calculate_checksum(&self) -> Result<u16, DekuError> {
+    fn update_checksum(&self) -> Result<u16, DekuError> {
         let mut ipv4 = self.to_bytes()?;
 
         // Bytes 10, 11 are the checksum. Clear them and re-calculate.
@@ -61,6 +62,18 @@ impl Ipv4 {
         ipv4[11] = 0x00;
 
         checksum(&ipv4).map_err(|e| DekuError::InvalidParam(e.to_string()))
+    }
+
+    pub fn update_length(&mut self, data: &[Layer]) -> Result<(), LayerError> {
+        let header = self.to_bytes()?;
+        let mut data_buf = Vec::new();
+        for layer in data {
+            data_buf.extend(layer.to_bytes()?)
+        }
+
+        self.length = u16::try_from(header.len() + data_buf.len())?;
+
+        Ok(())
     }
 }
 

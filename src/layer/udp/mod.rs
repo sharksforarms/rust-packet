@@ -103,6 +103,18 @@ impl Udp {
 
         Ok(())
     }
+
+    pub fn update_length(&mut self, data: &[Layer]) -> Result<(), LayerError> {
+        let header = self.to_bytes()?;
+        let mut data_buf = Vec::new();
+        for layer in data {
+            data_buf.extend(layer.to_bytes()?)
+        }
+
+        self.length = u16::try_from(header.len() + data_buf.len())?;
+
+        Ok(())
+    }
 }
 
 impl Default for Udp {

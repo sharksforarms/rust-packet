@@ -89,7 +89,6 @@ macro_rules! gen_layer_types {
                                     return Layer::consume_layer(rest, layers, 0);
                                 }
                             }
-
                         },
                         Layer::Ipv4(ipv4) => {
                             match ipv4.protocol {
