@@ -183,26 +183,7 @@ impl Tcp {
 
         Ok(())
     }
-}
 
-impl Default for Tcp {
-    fn default() -> Self {
-        Tcp {
-            sport: 0,
-            dport: 0,
-            seq: 0,
-            ack: 0,
-            offset: 0,
-            flags: TcpFlags::default(),
-            window: 0,
-            checksum: 0,
-            urgptr: 0,
-            options: Vec::new(),
-        }
-    }
-}
-
-impl Tcp {
     fn read_options(
         offset: u8, // tcp offset header field
         rest: &BitSlice<Msb0, u8>,
@@ -240,6 +221,23 @@ impl Tcp {
         }
 
         Ok((rest, tcp_options))
+    }
+}
+
+impl Default for Tcp {
+    fn default() -> Self {
+        Tcp {
+            sport: 0,
+            dport: 0,
+            seq: 0,
+            ack: 0,
+            offset: 0,
+            flags: TcpFlags::default(),
+            window: 0,
+            checksum: 0,
+            urgptr: 0,
+            options: Vec::new(),
+        }
     }
 }
 
