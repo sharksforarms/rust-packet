@@ -250,7 +250,8 @@ mod tests {
                 protocol: IpProtocol::TCP,
                 checksum: 31938,
                 src: "127.0.0.1".parse().unwrap(),
-                dst: "127.0.0.1".parse().unwrap()
+                dst: "127.0.0.1".parse().unwrap(),
+                options: vec![],
             }),
             pkt.layers[1]
         );

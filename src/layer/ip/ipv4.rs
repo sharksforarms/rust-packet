@@ -5,6 +5,53 @@ use deku::prelude::*;
 use std::convert::TryFrom;
 use std::net::Ipv4Addr;
 
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
+#[deku(id_type = "u8", id_bits = "2")]
+pub enum Ipv4OptionClass {
+    #[deku(id = "0")]
+    Control,
+    #[deku(id = "1")]
+    Reserved1,
+    #[deku(id = "2")]
+    Debug,
+    #[deku(id = "3")]
+    Reserved2,
+}
+
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
+#[deku(id_type = "u8", id_bits = "5")]
+pub enum Ipv4OptionType {
+    /// End of Option List
+    #[deku(id = "0")]
+    EOOL,
+    /// No Operation
+    #[deku(id = "1")]
+    NOP,
+    /// Unknown
+    Unknown {
+        #[deku(bits = "5")]
+        type_: u8,
+        #[deku(update = "{use std::convert::TryFrom; u8::try_from(
+            value.len()
+            .checked_add(2)
+            .ok_or_else(|| DekuError::Parse(\"overflow when updating ipv4 option length\".to_string()))?
+        )?}")]
+        length: u8,
+        #[deku(
+            count = "length.checked_sub(2).ok_or_else(|| DekuError::Parse(\"overflow when parsing ipv4 option\".to_string()))?"
+        )]
+        value: Vec<u8>,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
+pub struct Ipv4Option {
+    #[deku(bits = 1)]
+    pub copied: u8,
+    pub class: Ipv4OptionClass,
+    pub option: Ipv4OptionType,
+}
+
 /**
 Ipv4 Header
 
@@ -49,8 +96,8 @@ pub struct Ipv4 {
     pub checksum: u16, // Header checksum
     pub src: Ipv4Addr,       // Source IP Address
     pub dst: Ipv4Addr,       // Destination IP Address
-                             // options: [u8; ?],    // Options // TODO
-                             // padding: [u8; ?],    // padding // TODO
+    #[deku(reader = "Ipv4::read_options(ihl, rest, input_is_le)")]
+    pub options: Vec<Ipv4Option>,
 }
 
 impl Ipv4 {
@@ -74,6 +121,42 @@ impl Ipv4 {
         self.length = u16::try_from(header.len() + data_buf.len())?;
 
         Ok(())
+    }
+
+    fn read_options(
+        ihl: u8, // number of 32 bit words
+        rest: &BitSlice<Msb0, u8>,
+        input_is_le: bool,
+    ) -> Result<(&BitSlice<Msb0, u8>, Vec<Ipv4Option>), DekuError> {
+        if ihl > 5 {
+            // we have options to parse
+
+            // slice off length of options
+            let bits = (ihl as usize - 5) * 32;
+
+            // Check split_at precondition
+            if bits > rest.len() {
+                return Err(DekuError::Parse(
+                    "not enough data to read ipv4 options".to_string(),
+                ));
+            }
+
+            let (mut option_rest, rest) = rest.split_at(bits);
+
+            let mut ipv4_options = Vec::with_capacity(1); // at-least 1
+            while !option_rest.is_empty() {
+                let (option_rest_new, tcp_option) =
+                    Ipv4Option::read(option_rest, input_is_le, None, None)?;
+
+                ipv4_options.push(tcp_option);
+
+                option_rest = option_rest_new;
+            }
+
+            Ok((rest, ipv4_options))
+        } else {
+            Ok((rest, vec![]))
+        }
     }
 }
 
@@ -107,6 +190,7 @@ impl Default for Ipv4 {
             checksum: 0x1fd,
             src: Ipv4Addr::new(127, 0, 0, 1),
             dst: Ipv4Addr::new(127, 0, 0, 1),
+            options: vec![],
         }
     }
 }
@@ -135,6 +219,33 @@ mod tests {
                 checksum: 0x63a5,
                 src: Ipv4Addr::new(145,254,160,237),
                 dst: Ipv4Addr::new(145,253,2,203),
+                options: vec![],
+            },
+        ),
+
+        case::with_option(
+            &hex!("4f00007c000040004001fd307f0000017f00000186280000000101220001ae0000000000000000000000000000000000000000000000000000000001"),
+            Ipv4 {
+                version: 4,
+                ihl: 15,
+                ecn: 0,
+                dscp: 0,
+                length: 124,
+                identification: 0,
+                flags: 2,
+                offset: 0,
+                ttl: 64,
+                protocol: IpProtocol::ICMP,
+                checksum: 0xfd30,
+                src: Ipv4Addr::new(127,0,0,1),
+                dst: Ipv4Addr::new(127,0,0,1),
+                options: vec![
+                    Ipv4Option {
+                        copied: 1,
+                        class: Ipv4OptionClass::Control,
+                        option: Ipv4OptionType::Unknown { type_: 6, length: 40, value: vec![0, 0, 0, 1, 1, 34, 0, 1, 174, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] }
+                    }
+                ],
             },
         ),
     )]
@@ -163,6 +274,7 @@ mod tests {
                 checksum: 0x1fd,
                 src: Ipv4Addr::new(127, 0, 0, 1),
                 dst: Ipv4Addr::new(127, 0, 0, 1),
+                options: vec![],
             },
             Ipv4::default()
         );
