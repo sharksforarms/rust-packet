@@ -1,3 +1,8 @@
+/*!
+Raw layer
+
+A Raw layer represents un-parsed data or application data such as a UDP payload
+*/
 use deku::prelude::*;
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]

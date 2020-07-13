@@ -1,3 +1,9 @@
+/*!
+Module containing the `Packet` type
+
+A Packet is a collection of layers
+*/
+
 pub mod error;
 pub use error::PacketError;
 
@@ -5,6 +11,7 @@ use crate::layer::{Layer, LayerType};
 
 const MAX_LAYERS: usize = 10;
 
+/// Container for network layers
 #[derive(Debug)]
 pub struct Packet {
     layers: Vec<Layer>,
@@ -15,11 +22,14 @@ impl Packet {
         Packet { layers }
     }
 
+    /// Read a packet from bytes
+    /// This will read layers in accordance to the protocol
     pub fn from_bytes(input: &[u8]) -> Result<Packet, PacketError> {
         let layers = Layer::from_bytes_multi_layer(input, MAX_LAYERS)?;
         Ok(Packet::new(layers))
     }
 
+    /// Write packet to bytes
     pub fn to_bytes(&self) -> Result<Vec<u8>, PacketError> {
         let mut acc = Vec::new();
         for layer in &self.layers {
@@ -29,6 +39,8 @@ impl Packet {
         Ok(acc)
     }
 
+    /// Update the packet
+    /// This is used to re-compute dynamic data such as checksums
     pub fn update(&mut self) -> Result<(), PacketError> {
         /* TODO:
             I feel like this routine can be optimized.
@@ -79,6 +91,7 @@ impl Packet {
 macro_rules! impl_layer_packet_funcs {
     ($layer:ident, $func:ident, $func_mut:ident) => {
         impl Packet {
+            /// Returns the first $layer layer as a reference
             pub fn $func(&self) -> Option<&crate::layer::$layer> {
                 let layer = self
                     .layers
@@ -92,6 +105,7 @@ macro_rules! impl_layer_packet_funcs {
                 }
             }
 
+            /// Returns the first $layer layer as a mutable reference
             pub fn $func_mut(&mut self) -> Option<&mut crate::layer::$layer> {
                 let layer = self
                     .layers
@@ -136,6 +150,32 @@ impl std::ops::IndexMut<LayerType> for Packet {
     }
 }
 
+/**
+Create a [Packet](packet/struct.Packet.html)
+
+Returns `Result<Packet, PacketError>`
+
+Example:
+
+```rust
+# use rust_packet::prelude::*;
+let pkt: Packet = pkt! {
+    ether! {
+        dst: "de:ad:be:ef:c0:fe".parse()?
+    }?,
+    ipv4! {
+        src: "127.0.0.1".parse()?,
+        dst: "127.0.0.2".parse()?,
+    }?,
+    udp! {
+        dport: 1337
+    }?,
+    raw! {
+        data: b"hello world!".to_vec()
+    }?,
+}.unwrap();
+```
+*/
 #[macro_export]
 macro_rules! pkt {
     ($($layers:expr),+ $(,)?) => ({
