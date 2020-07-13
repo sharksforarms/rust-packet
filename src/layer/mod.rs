@@ -13,12 +13,13 @@ pub mod udp;
 
 pub use error::LayerError;
 pub use ether::Ether;
-pub use ip::{IpProtocol, Ipv4, Ipv6};
+pub use ip::{Ipv4, Ipv6};
 pub use raw::Raw;
 pub use tcp::Tcp;
 pub use udp::Udp;
 
 use deku::prelude::*;
+use ip::IpProtocol;
 
 #[derive(Debug, PartialEq)]
 pub enum ValidationError {
@@ -185,15 +186,15 @@ gen_layer_types!(Raw, Ether, Ipv4, Ipv6, Tcp, Udp,);
 #[macro_export]
 macro_rules! __builder_impl {
     ($layer_type:ident, $($field_ident:ident : $field:expr),*) => ({
-        || -> Result<_, crate::layer::LayerError> {
-            let mut layer = crate::layer::$layer_type {
+        || -> Result<_, $crate::layer::LayerError> {
+            let mut layer = $crate::layer::$layer_type {
                 $($field_ident : $field,)*
                 ..Default::default()
             };
 
             layer.update()?;
 
-            Ok(crate::layer::Layer::$layer_type(layer))
+            Ok($crate::layer::Layer::$layer_type(layer))
         }()
     });
 }
