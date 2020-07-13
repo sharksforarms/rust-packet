@@ -47,7 +47,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - run: cargo run --example 2>&1 | grep -P '   ' | awk '{print $1}' | xargs -i cargo run --example {}
+      - run: cargo run --example 2>&1 | grep -P '   ' | awk '{print $1}' | xargs -i cargo build --example {}
 
   fmt:
     name: Rustfmt
