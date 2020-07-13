@@ -9,6 +9,8 @@ A network packet parser and builder. This crate is meant to provide similar func
 
 See [examples](https://github.com/sharksforarms/rust-packet/tree/master/examples) for more.
 
+## Packet manipulation
+
 ```rust
 use rust_packet::prelude::*;
 
@@ -44,6 +46,42 @@ fn main() {
 
     // Write the packet!
     let raw_bytes = pkt.to_bytes().unwrap();
+}
+```
+
+## Network interfaces
+
+This utilizes the `libpnet` crate to read and write from network interfaces.
+
+See `PcapFile` [example](https://github.com/sharksforarms/rust-packet/tree/master/examples/replay_pcap.rs) to read a pcap.
+
+```rust
+use rust_packet::prelude::*;
+
+fn main() {
+    // Read from interface
+    // See also `Pcap` and `PcapFile`!
+    let mut int = Interface::<Pnet>::new("lo").unwrap();
+
+    for (i, pkt) in (&mut int).enumerate() {
+        println!("Packet: {:?}", pkt);
+        if i == 5 {
+            break;
+        }
+    }
+
+    // Write to interface
+    let pkt = pkt! {
+        ether! {}?,
+        ipv4! {}?,
+        udp! {}?,
+        raw! {
+            data: b"Hello world".to_vec(),
+        }?
+    }
+    .unwrap();
+
+    int.write(pkt).unwrap();
 }
 ```
 

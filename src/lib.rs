@@ -42,6 +42,7 @@ let raw_bytes = pkt.to_bytes().unwrap();
 ```
 */
 
+pub mod datalink;
 pub mod layer;
 pub mod packet;
 pub mod prelude;
