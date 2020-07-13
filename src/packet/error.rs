@@ -19,7 +19,6 @@ impl core::fmt::Display for PacketError {
     }
 }
 
-#[cfg(feature = "std")]
 impl std::error::Error for PacketError {
     fn cause(&self) -> Option<&dyn std::error::Error> {
         Some(self)
