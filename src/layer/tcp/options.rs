@@ -1,21 +1,21 @@
 use deku::prelude::*;
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(endian = "big")]
+#[deku(endian = "big", ctx = "_endian: deku::ctx::Endian")]
 pub struct SAckData {
     pub begin: u32,
     pub end: u32,
 }
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(endian = "big")]
+#[deku(endian = "big", ctx = "_endian: deku::ctx::Endian")]
 pub struct TimestampData {
     pub start: u32,
     pub end: u32,
 }
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(id_type = "u8", endian = "big")]
+#[deku(id_type = "u8", endian = "big", ctx = "_endian: deku::ctx::Endian")]
 pub enum TcpOption {
     #[deku(id = "0x00")]
     EOL,
@@ -50,7 +50,6 @@ mod tests {
     use super::*;
     use hex_literal::hex;
     use rstest::rstest;
-    use std::convert::TryFrom;
 
     #[rstest(input, expected,
         case(&hex!("00"), TcpOption::EOL),
@@ -76,7 +75,7 @@ mod tests {
         case::sack_length_underflow(&hex!("0500e4d6c0f0e4d6cba0"), TcpOption::EOL),
     )]
     fn test_tcp_option(input: &[u8], expected: TcpOption) {
-        let option = TcpOption::try_from(input).unwrap();
+        let (_rest, option) = TcpOption::read(input.bits(), deku::ctx::Endian::Big).unwrap();
         assert_eq!(expected, option);
     }
 

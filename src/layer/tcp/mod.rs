@@ -10,6 +10,7 @@ mod options;
 pub use options::{SAckData, TcpOption, TimestampData};
 
 #[derive(Debug, Clone, PartialEq, DekuRead, DekuWrite)]
+#[deku(endian = "big", ctx = "_endian: deku::ctx::Endian")]
 pub struct TcpFlags {
     #[deku(bits = "3")]
     pub reserved: u8,
@@ -100,12 +101,11 @@ pub struct Tcp {
     pub ack: u32,
     #[deku(bits = "4")]
     pub offset: u8, // size of tcp header in 32-bit words
-    #[deku(bits = "12")]
     pub flags: TcpFlags,
     pub window: u16,
     pub checksum: u16,
     pub urgptr: u16,
-    #[deku(reader = "Tcp::read_options(offset, rest, input_is_le)")]
+    #[deku(reader = "Tcp::read_options(*offset, rest)")]
     pub options: Vec<TcpOption>,
 }
 
@@ -124,14 +124,14 @@ impl Tcp {
         let mut buf = Vec::with_capacity(12 + tcp.len() + data_buf.len());
 
         // Write pseudo header
-        buf.extend(ipv4.src.write(false, None)?.into_vec());
-        buf.extend(ipv4.dst.write(false, None)?.into_vec());
+        buf.extend(ipv4.src.write(deku::ctx::Endian::Big)?.into_vec());
+        buf.extend(ipv4.dst.write(deku::ctx::Endian::Big)?.into_vec());
         buf.push(0);
-        buf.extend(ipv4.protocol.write(false, None)?.into_vec());
+        buf.extend(ipv4.protocol.write(deku::ctx::Endian::Big)?.into_vec());
         buf.extend(
             (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
                 .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
-                .write(false, None)?
+                .write(deku::ctx::Endian::Big)?
                 .into_vec(),
         );
 
@@ -160,18 +160,18 @@ impl Tcp {
         let mut buf = Vec::with_capacity(40 + tcp.len() + data_buf.len());
 
         // Write pseudo header
-        buf.extend(ipv6.src.write(false, None)?.into_vec());
-        buf.extend(ipv6.dst.write(false, None)?.into_vec());
+        buf.extend(ipv6.src.write(deku::ctx::Endian::Big)?.into_vec());
+        buf.extend(ipv6.dst.write(deku::ctx::Endian::Big)?.into_vec());
         buf.extend(
             (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
                 .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
-                .write(false, None)?
+                .write(deku::ctx::Endian::Big)?
                 .into_vec(),
         );
         buf.push(0);
         buf.push(0);
         buf.push(0);
-        buf.extend(ipv6.next_header.write(false, None)?.into_vec());
+        buf.extend(ipv6.next_header.write(deku::ctx::Endian::Big)?.into_vec());
 
         // Write tcp header
         buf.extend(tcp);
@@ -187,7 +187,6 @@ impl Tcp {
     fn read_options(
         offset: u8, // tcp offset header field
         rest: &BitSlice<Msb0, u8>,
-        input_is_le: bool,
     ) -> Result<(&BitSlice<Msb0, u8>, Vec<TcpOption>), DekuError> {
         let length = offset
             .checked_sub(5)
@@ -213,7 +212,7 @@ impl Tcp {
         let mut tcp_options = Vec::with_capacity(1); // at-least 1
         while !option_rest.is_empty() {
             let (option_rest_new, tcp_option) =
-                TcpOption::read(option_rest, input_is_le, None, None)?;
+                TcpOption::read(option_rest, deku::ctx::Endian::Big)?;
 
             tcp_options.push(tcp_option);
 

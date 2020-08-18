@@ -3,7 +3,7 @@ use deku::prelude::*;
 // Inspired from https://github.com/secdev/scapy/blob/master/scapy/libs/ethertypes.py
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(id_type = "u16", endian = "big")]
+#[deku(id_type = "u16", endian = "big", ctx = "_endian: deku::ctx::Endian")]
 pub enum EtherType {
     /// IEEE 802.3 packet
     #[deku(id = "0x0004")]
@@ -11,9 +11,6 @@ pub enum EtherType {
     /// Xerox PUP protocol - see 0A00
     #[deku(id = "0x0200")]
     PUP,
-    /// PUP Address Translation - see 0A01
-    #[deku(id = "0x0200")]
-    PUPAT,
     /// XNS
     #[deku(id = "0x0600")]
     NS,
@@ -271,16 +268,15 @@ impl Default for EtherType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::convert::TryFrom;
 
     #[test]
     fn test_ethertype() {
         let test_data = [0x86u8, 0xDD].to_vec();
 
-        let ret_read = EtherType::try_from(test_data.as_ref()).unwrap();
+        let (_rest, ret_read) = EtherType::read(test_data.bits(), deku::ctx::Endian::Big).unwrap();
         assert_eq!(EtherType::IPv6, ret_read);
 
-        let ret_write = ret_read.to_bytes().unwrap();
+        let ret_write = ret_read.write(deku::ctx::Endian::Big).unwrap().into_vec();
         assert_eq!(test_data, ret_write);
     }
 

@@ -6,7 +6,12 @@ use std::convert::TryFrom;
 use std::net::Ipv4Addr;
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(id_type = "u8", id_bits = "2")]
+#[deku(
+    id_type = "u8",
+    id_bits = "2",
+    endian = "big",
+    ctx = "_endian: deku::ctx::Endian"
+)]
 pub enum Ipv4OptionClass {
     #[deku(id = "0")]
     Control,
@@ -19,7 +24,12 @@ pub enum Ipv4OptionClass {
 }
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(id_type = "u8", id_bits = "5")]
+#[deku(
+    id_type = "u8",
+    id_bits = "5",
+    endian = "big",
+    ctx = "_endian: deku::ctx::Endian"
+)]
 pub enum Ipv4OptionType {
     /// End of Option List
     #[deku(id = "0")]
@@ -45,6 +55,7 @@ pub enum Ipv4OptionType {
 }
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
+#[deku(endian = "big", ctx = "_endian: deku::ctx::Endian")]
 pub struct Ipv4Option {
     #[deku(bits = 1)]
     pub copied: u8,
@@ -96,7 +107,7 @@ pub struct Ipv4 {
     pub checksum: u16, // Header checksum
     pub src: Ipv4Addr,       // Source IP Address
     pub dst: Ipv4Addr,       // Destination IP Address
-    #[deku(reader = "Ipv4::read_options(ihl, rest, input_is_le)")]
+    #[deku(reader = "Ipv4::read_options(*ihl, rest)")]
     pub options: Vec<Ipv4Option>,
 }
 
@@ -126,7 +137,6 @@ impl Ipv4 {
     fn read_options(
         ihl: u8, // number of 32 bit words
         rest: &BitSlice<Msb0, u8>,
-        input_is_le: bool,
     ) -> Result<(&BitSlice<Msb0, u8>, Vec<Ipv4Option>), DekuError> {
         if ihl > 5 {
             // we have options to parse
@@ -146,7 +156,7 @@ impl Ipv4 {
             let mut ipv4_options = Vec::with_capacity(1); // at-least 1
             while !option_rest.is_empty() {
                 let (option_rest_new, tcp_option) =
-                    Ipv4Option::read(option_rest, input_is_le, None, None)?;
+                    Ipv4Option::read(option_rest, deku::ctx::Endian::Big)?;
 
                 ipv4_options.push(tcp_option);
 

@@ -22,7 +22,7 @@ netmap = ["pnet/netmap"]
 pcap = ["pnet/pcap"]
 
 [dependencies]
-deku = "0.6"
+deku = "0.7.1"
 nom = "5.1"
 pnet = { version = "0.26", optional = true }
 

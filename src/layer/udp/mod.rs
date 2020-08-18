@@ -44,14 +44,14 @@ impl Udp {
         let mut buf = Vec::with_capacity(12 + udp.len() + data_buf.len());
 
         // Write pseudo header
-        buf.extend(ipv4.src.write(false, None)?.into_vec());
-        buf.extend(ipv4.dst.write(false, None)?.into_vec());
+        buf.extend(ipv4.src.write(deku::ctx::Endian::Big)?.into_vec());
+        buf.extend(ipv4.dst.write(deku::ctx::Endian::Big)?.into_vec());
         buf.push(0);
-        buf.extend(ipv4.protocol.write(false, None)?.into_vec());
+        buf.extend(ipv4.protocol.write(deku::ctx::Endian::Big)?.into_vec());
         buf.extend(
             (u16::try_from(data_buf.len())?.checked_add(u16::try_from(udp.len())?))
                 .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
-                .write(false, None)?
+                .write(deku::ctx::Endian::Big)?
                 .into_vec(),
         );
 
@@ -80,18 +80,18 @@ impl Udp {
         let mut buf = Vec::with_capacity(40 + udp.len() + data_buf.len());
 
         // Write pseudo header
-        buf.extend(ipv6.src.write(false, None)?.into_vec());
-        buf.extend(ipv6.dst.write(false, None)?.into_vec());
+        buf.extend(ipv6.src.write(deku::ctx::Endian::Big)?.into_vec());
+        buf.extend(ipv6.dst.write(deku::ctx::Endian::Big)?.into_vec());
         buf.extend(
             (u16::try_from(data_buf.len())?.checked_add(u16::try_from(udp.len())?))
                 .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
-                .write(false, None)?
+                .write(deku::ctx::Endian::Big)?
                 .into_vec(),
         );
         buf.push(0);
         buf.push(0);
         buf.push(0);
-        buf.extend(ipv6.next_header.write(false, None)?.into_vec());
+        buf.extend(ipv6.next_header.write(deku::ctx::Endian::Big)?.into_vec());
 
         // Write udp header
         buf.extend(udp);
