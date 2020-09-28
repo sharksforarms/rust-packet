@@ -41,7 +41,7 @@ impl std::str::FromStr for MacAddress {
             .map_err(|_e| LayerError::Parse("parsing failure, invalid format".to_string()))?
             .1;
 
-        let (_rest, mac_addr) = MacAddress::read(res.bits(), deku::ctx::Endian::Big)?;
+        let (_rest, mac_addr) = MacAddress::read(res.view_bits(), deku::ctx::Endian::Big)?;
 
         Ok(mac_addr)
     }
@@ -56,7 +56,8 @@ mod tests {
         case(&[0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB], MacAddress([0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB])),
     )]
     fn test_macaddress(input: &[u8], expected: MacAddress) {
-        let (_rest, ret_read) = MacAddress::read(input.bits(), deku::ctx::Endian::Big).unwrap();
+        let (_rest, ret_read) =
+            MacAddress::read(input.view_bits(), deku::ctx::Endian::Big).unwrap();
         assert_eq!(expected, ret_read);
 
         let ret_write = ret_read.write(deku::ctx::Endian::Big).unwrap().into_vec();
