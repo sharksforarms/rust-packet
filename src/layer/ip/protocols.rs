@@ -1,7 +1,12 @@
 use deku::prelude::*;
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(id_type = "u8", ctx = "_endian: deku::ctx::Endian")]
+#[deku(
+    type = "u8",
+    ctx = "endian: deku::ctx::Endian",
+    ctx_default = "deku::ctx::Endian::Big",
+    endian = "endian"
+)]
 pub enum IpProtocol {
     /// IPv6 Hop-by-Hop Option [RFC1883]
     #[deku(id = "0")]
@@ -181,10 +186,10 @@ mod tests {
     fn test_ipprotocol() {
         let test_data = [0x06u8].to_vec();
 
-        let (_rest, ret_read) = IpProtocol::read(test_data.bits(), deku::ctx::Endian::Big).unwrap();
+        let (_rest, ret_read) = IpProtocol::from_bytes((&test_data, 0)).unwrap();
         assert_eq!(IpProtocol::TCP, ret_read);
 
-        let ret_write = ret_read.write(deku::ctx::Endian::Big).unwrap().into_vec();
+        let ret_write = ret_read.to_bytes().unwrap();
         assert_eq!(test_data, ret_write);
     }
 

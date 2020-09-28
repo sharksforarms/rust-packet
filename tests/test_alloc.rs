@@ -45,21 +45,21 @@ mod tests {
         Raw,
         hex!("FFFFFFFFFF").as_ref(),
         (1, 0, 1), // expected read allocations (malloc, realloc, free)
-        (7, 0, 7)  // expected write allocations (malloc, realloc, free)
+        (1, 0, 1)  // expected write allocations (malloc, realloc, free)
     );
     gen_count_alloc!(
         test_ether,
         Ether,
         hex!("ec086b507d584ccc6ad61f760800").as_ref(),
         (0, 0, 0),
-        (19, 1, 19)
+        (1, 1, 1)
     );
     gen_count_alloc!(
         test_ipv4,
         Ipv4,
         hex!("450000502bc1400040068f37c0a8016bc01efd7d").as_ref(),
         (6, 0, 6),
-        (21, 2, 21)
+        (1, 2, 1)
     );
     gen_count_alloc!(
         test_ipv6,
@@ -67,20 +67,20 @@ mod tests {
         hex!("60000000012867403ffe802000000001026097fffe0769ea3ffe050100001c010200f8fffe03d9c0")
             .as_ref(),
         (4, 1, 4),
-        (15, 2, 15)
+        (1, 2, 1)
     );
     gen_count_alloc!(
         test_tcp,
         Tcp,
         hex!("0d2c005038affe14114c618c501825bca9580000").as_ref(),
         (11, 0, 11),
-        (31, 2, 31)
+        (1, 2, 1)
     );
     gen_count_alloc!(
         test_udp,
         Udp,
         hex!("b4d100a1004815b3").as_ref(),
         (0, 0, 0),
-        (5, 0, 5)
+        (1, 0, 1)
     );
 }

@@ -7,10 +7,10 @@ use std::net::Ipv4Addr;
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 #[deku(
-    id_type = "u8",
-    id_bits = "2",
-    endian = "big",
-    ctx = "_endian: deku::ctx::Endian"
+    type = "u8",
+    bits = "2",
+    ctx = "endian: deku::ctx::Endian",
+    endian = "endian"
 )]
 pub enum Ipv4OptionClass {
     #[deku(id = "0")]
@@ -25,10 +25,10 @@ pub enum Ipv4OptionClass {
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 #[deku(
-    id_type = "u8",
-    id_bits = "5",
-    endian = "big",
-    ctx = "_endian: deku::ctx::Endian"
+    type = "u8",
+    bits = "5",
+    ctx = "endian: deku::ctx::Endian",
+    endian = "endian"
 )]
 pub enum Ipv4OptionType {
     /// End of Option List
@@ -55,7 +55,7 @@ pub enum Ipv4OptionType {
 }
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(endian = "big", ctx = "_endian: deku::ctx::Endian")]
+#[deku(ctx = "endian: deku::ctx::Endian", endian = "endian")]
 pub struct Ipv4Option {
     #[deku(bits = 1)]
     pub copied: u8,

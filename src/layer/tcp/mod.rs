@@ -10,7 +10,11 @@ mod options;
 pub use options::{SAckData, TcpOption, TimestampData};
 
 #[derive(Debug, Clone, PartialEq, DekuRead, DekuWrite)]
-#[deku(endian = "big", ctx = "_endian: deku::ctx::Endian")]
+#[deku(
+    endian = "endian",
+    ctx = "endian: deku::ctx::Endian",
+    ctx_default = "deku::ctx::Endian::Big"
+)]
 pub struct TcpFlags {
     #[deku(bits = "3")]
     pub reserved: u8,
@@ -124,16 +128,26 @@ impl Tcp {
         let mut buf = Vec::with_capacity(12 + tcp.len() + data_buf.len());
 
         // Write pseudo header
-        buf.extend(ipv4.src.write(deku::ctx::Endian::Big)?.into_vec());
-        buf.extend(ipv4.dst.write(deku::ctx::Endian::Big)?.into_vec());
+        let mut ipv4_src = BitVec::<Msb0, u8>::new();
+        ipv4.src.write(&mut ipv4_src, deku::ctx::Endian::Big)?;
+        buf.extend(ipv4_src.into_vec());
+
+        let mut ipv4_dst = BitVec::<Msb0, u8>::new();
+        ipv4.dst.write(&mut ipv4_dst, deku::ctx::Endian::Big)?;
+        buf.extend(ipv4_dst.into_vec());
+
         buf.push(0);
-        buf.extend(ipv4.protocol.write(deku::ctx::Endian::Big)?.into_vec());
-        buf.extend(
-            (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
-                .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
-                .write(deku::ctx::Endian::Big)?
-                .into_vec(),
-        );
+
+        let mut ipv4_protocol = BitVec::<Msb0, u8>::new();
+        ipv4.protocol
+            .write(&mut ipv4_protocol, deku::ctx::Endian::Big)?;
+        buf.extend(ipv4_protocol.into_vec());
+
+        let len_sum = (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
+            .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?;
+        let mut len_sum_res = BitVec::<Msb0, u8>::new();
+        len_sum.write(&mut len_sum_res, deku::ctx::Endian::Big)?;
+        buf.extend(len_sum_res.into_vec());
 
         // Write tcp header
         buf.extend(tcp);
@@ -160,18 +174,28 @@ impl Tcp {
         let mut buf = Vec::with_capacity(40 + tcp.len() + data_buf.len());
 
         // Write pseudo header
-        buf.extend(ipv6.src.write(deku::ctx::Endian::Big)?.into_vec());
-        buf.extend(ipv6.dst.write(deku::ctx::Endian::Big)?.into_vec());
-        buf.extend(
-            (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
-                .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?
-                .write(deku::ctx::Endian::Big)?
-                .into_vec(),
-        );
+        let mut ipv6_src = BitVec::<Msb0, u8>::new();
+        ipv6.src.write(&mut ipv6_src, deku::ctx::Endian::Big)?;
+        buf.extend(ipv6_src.into_vec());
+
+        let mut ipv6_dst = BitVec::<Msb0, u8>::new();
+        ipv6.dst.write(&mut ipv6_dst, deku::ctx::Endian::Big)?;
+        buf.extend(ipv6_dst.into_vec());
+
+        let len_sum = (u16::try_from(data_buf.len())?.checked_add(u16::try_from(tcp.len())?))
+            .ok_or_else(|| LayerError::IntError("overflow occurred".to_string()))?;
+        let mut len_sum_res = BitVec::<Msb0, u8>::new();
+        len_sum.write(&mut len_sum_res, deku::ctx::Endian::Big)?;
+        buf.extend(len_sum_res.into_vec());
+
         buf.push(0);
         buf.push(0);
         buf.push(0);
-        buf.extend(ipv6.next_header.write(deku::ctx::Endian::Big)?.into_vec());
+
+        let mut ipv6_next_header = BitVec::<Msb0, u8>::new();
+        ipv6.next_header
+            .write(&mut ipv6_next_header, deku::ctx::Endian::Big)?;
+        buf.extend(ipv6_next_header.into_vec());
 
         // Write tcp header
         buf.extend(tcp);
