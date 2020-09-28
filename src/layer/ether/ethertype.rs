@@ -3,7 +3,12 @@ use deku::prelude::*;
 // Inspired from https://github.com/secdev/scapy/blob/master/scapy/libs/ethertypes.py
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
-#[deku(id_type = "u16", endian = "big", ctx = "_endian: deku::ctx::Endian")]
+#[deku(
+    type = "u16",
+    ctx = "endian: deku::ctx::Endian",
+    ctx_default = "deku::ctx::Endian::Big",
+    endian = "endian"
+)]
 pub enum EtherType {
     /// IEEE 802.3 packet
     #[deku(id = "0x0004")]
@@ -273,10 +278,10 @@ mod tests {
     fn test_ethertype() {
         let test_data = [0x86u8, 0xDD].to_vec();
 
-        let (_rest, ret_read) = EtherType::read(test_data.bits(), deku::ctx::Endian::Big).unwrap();
+        let (_rest, ret_read) = EtherType::from_bytes((&test_data, 0)).unwrap();
         assert_eq!(EtherType::IPv6, ret_read);
 
-        let ret_write = ret_read.write(deku::ctx::Endian::Big).unwrap().into_vec();
+        let ret_write = ret_read.to_bytes().unwrap();
         assert_eq!(test_data, ret_write);
     }
 

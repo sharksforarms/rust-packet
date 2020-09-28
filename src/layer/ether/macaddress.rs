@@ -29,7 +29,10 @@ fn parse_macaddr_str(input: &str) -> IResult<&str, Vec<u8>> {
 
 /// Type representing an ethernet mac address
 #[derive(Debug, PartialEq, Clone, Default, DekuRead, DekuWrite)]
-#[deku(ctx = "_endian: deku::ctx::Endian")]
+#[deku(
+    ctx_default = "deku::ctx::Endian::Big",
+    ctx = "_endian: deku::ctx::Endian"
+)]
 pub struct MacAddress(pub [u8; MACADDR_SIZE]);
 
 impl std::str::FromStr for MacAddress {
@@ -56,11 +59,10 @@ mod tests {
         case(&[0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB], MacAddress([0xAA, 0xFF, 0xFF, 0xFF, 0xFF, 0xBB])),
     )]
     fn test_macaddress(input: &[u8], expected: MacAddress) {
-        let (_rest, ret_read) =
-            MacAddress::read(input.view_bits(), deku::ctx::Endian::Big).unwrap();
+        let (_rest, ret_read) = MacAddress::from_bytes((input, 0)).unwrap();
         assert_eq!(expected, ret_read);
 
-        let ret_write = ret_read.write(deku::ctx::Endian::Big).unwrap().into_vec();
+        let ret_write = ret_read.to_bytes().unwrap();
         assert_eq!(input.to_vec(), ret_write);
     }
 
