@@ -28,7 +28,7 @@ pnet = { version = "0.26", optional = true }
 
 [dev-dependencies]
 rstest = "0.6"
-quickcheck = "0.9"
+quickcheck = "1.0"
 criterion = "0.3"
 alloc_counter = "0.0.4"
 hex-literal = "0.3"
