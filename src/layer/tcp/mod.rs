@@ -3,6 +3,7 @@ TCP layer
 */
 use super::{Layer, LayerError};
 use crate::layer::{ip::checksum, Ipv4, Ipv6};
+use deku::bitvec::{BitSlice, BitVec, Msb0};
 use deku::prelude::*;
 use std::convert::TryFrom;
 
@@ -109,7 +110,7 @@ pub struct Tcp {
     pub window: u16,
     pub checksum: u16,
     pub urgptr: u16,
-    #[deku(reader = "Tcp::read_options(*offset, rest)")]
+    #[deku(reader = "Tcp::read_options(*offset, deku::rest)")]
     pub options: Vec<TcpOption>,
 }
 

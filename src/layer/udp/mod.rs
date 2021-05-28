@@ -4,6 +4,7 @@ UDP layer
 
 use super::{Layer, LayerError};
 use crate::layer::{ip::checksum, Ipv4, Ipv6};
+use deku::bitvec::{BitVec, Msb0};
 use deku::prelude::*;
 use std::convert::TryFrom;
 

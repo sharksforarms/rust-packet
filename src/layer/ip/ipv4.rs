@@ -1,6 +1,7 @@
 use super::checksum;
 use super::IpProtocol;
 use crate::layer::{Layer, LayerError, LayerValidate, ValidationError};
+use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
 use std::convert::TryFrom;
 use std::net::Ipv4Addr;
@@ -38,6 +39,7 @@ pub enum Ipv4OptionType {
     #[deku(id = "1")]
     NOP,
     /// Unknown
+    #[deku(id_pat = "_")]
     Unknown {
         #[deku(bits = "5")]
         type_: u8,
@@ -107,7 +109,7 @@ pub struct Ipv4 {
     pub checksum: u16, // Header checksum
     pub src: Ipv4Addr,       // Source IP Address
     pub dst: Ipv4Addr,       // Destination IP Address
-    #[deku(reader = "Ipv4::read_options(*ihl, rest)")]
+    #[deku(reader = "Ipv4::read_options(*ihl, deku::rest)")]
     pub options: Vec<Ipv4Option>,
 }
 
