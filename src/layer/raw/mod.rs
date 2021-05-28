@@ -3,11 +3,12 @@ Raw layer
 
 A Raw layer represents un-parsed data or application data such as a UDP payload
 */
+use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
 
 #[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
 pub struct Raw {
-    #[deku(reader = "Raw::reader(rest)")]
+    #[deku(reader = "Raw::reader(deku::rest)")]
     pub data: Vec<u8>,
     #[deku(skip)]
     pub bit_offset: usize,
@@ -16,7 +17,7 @@ pub struct Raw {
 impl Raw {
     fn reader(rest: &BitSlice<Msb0, u8>) -> Result<(&BitSlice<Msb0, u8>, Vec<u8>), DekuError> {
         // read all the rest
-        let ret = rest.as_slice().to_vec();
+        let ret = rest.as_raw_slice().to_vec();
         let (empty, _rest) = rest.split_at(0);
         Ok((empty, ret))
     }

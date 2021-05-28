@@ -1,4 +1,5 @@
 use crate::layer::LayerError;
+use deku::bitvec::BitView;
 use deku::prelude::*;
 use nom::bytes::{complete::tag, complete::take_while_m_n};
 use nom::combinator::{map_res, verify};
