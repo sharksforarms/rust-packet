@@ -27,7 +27,7 @@ nom = "5.1"
 pnet = { version = "0.26", optional = true }
 
 [dev-dependencies]
-rstest = "0.6"
+rstest = "0.10"
 quickcheck = "0.9"
 criterion = "0.3"
 alloc_counter = "0.0.4"
